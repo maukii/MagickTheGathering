@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TestSpell01
   m_EditorClassIdentifier: 
   icon: {fileID: 21300000, guid: 4d7df3ab37b749348a59ecb2362eddf5, type: 3}
-  spellName: The Deadly Smiley
+  spellName: 'c:'
   baseDamage: 100
   baseCooldown: 10
   elements: []
