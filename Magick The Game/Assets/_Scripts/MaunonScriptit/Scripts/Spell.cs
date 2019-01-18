@@ -5,15 +5,7 @@ using UnityEngine;
 public class Spell : MonoBehaviour
 {
 
-    public SpellData spellData;
+    public SpellStats stats;
 
-    void Start()
-    {
 
-    }
-
-    void Update()
-    {
-
-    }
 }
