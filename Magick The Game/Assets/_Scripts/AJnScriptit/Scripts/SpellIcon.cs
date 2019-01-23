@@ -8,7 +8,7 @@ public class SpellIcon : MonoBehaviour
 {
     #region VARIABLES
 
-    [SerializeField] private SpellData spellData;
+    [SerializeField] private SpellStats spellData;
     [SerializeField] private Text spellNameText = null;
     [SerializeField] private Text spellCooldownText = null;
     
@@ -45,7 +45,7 @@ public class SpellIcon : MonoBehaviour
     
     #region CUSTOM_METHODS
 
-    public void UpdateSpellData(SpellData sd)
+    public void UpdateSpellData(SpellStats sd)
     {
         if (sd != null)
         {
@@ -82,7 +82,10 @@ public class SpellIcon : MonoBehaviour
 
         if (b)
         {
-            cooldownTimer = spellData.baseCooldown;
+            //baseCooldown got removed, using a placeholder value instead.
+            //cooldownTimer = spellData.baseCooldown;
+
+            cooldownTimer = 5.0f;
             GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f);
         }
         else
