@@ -67,7 +67,6 @@ public class ThirdPersonCamera : MonoBehaviour
         }
         
         lockToTarget.localRotation = Quaternion.Euler(rotation);
-        debugText.text = rotation.ToString();
     }
 
     #endregion
