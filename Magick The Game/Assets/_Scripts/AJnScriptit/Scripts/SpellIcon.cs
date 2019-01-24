@@ -6,6 +6,9 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Image))]
 public class SpellIcon : MonoBehaviour
 {
+    /*
+    //Commenting whole thing as other scripts this one uses change very rapidly.
+
     #region VARIABLES
 
     [SerializeField] private SpellStats spellData;
@@ -95,4 +98,6 @@ public class SpellIcon : MonoBehaviour
     }
 
     #endregion
+
+    */
 }
