@@ -10,17 +10,23 @@ public class PlayerController : MonoBehaviour
     public bool invertY = false;
     public Vector2 sensitivity = new Vector2(1.0f, 1.0f);
 
-    [SerializeField] private float acceleration = 10.0f;
-    [SerializeField] private float airAcceleration = 4.0f;
-    [SerializeField] private float maxSpeed = 5.0f;
-    [SerializeField] private float friction = 1.0f;
-    [SerializeField] private float jumpForce = 5.0f;
+    [SerializeField] private float acceleration = 200.0f;
+    [SerializeField] private float airAcceleration = 20.0f;
+    [SerializeField] private float maxSpeed = 10.0f;
+    [SerializeField] private float friction = 0.2f;
+    [SerializeField] private float airFriction = 0.02f;
+    [SerializeField] private float jumpForce = 15.0f;
     [SerializeField] private float jumpGraceTime = 0.1f;
-    [SerializeField] private float gravityMultiplier = 1.0f;
+    [SerializeField] private float gravityMultiplier = 3.0f;
+    [SerializeField] private float smoothStepDown = 0.5f;
     [SerializeField] private Vector2 minMaxPitch = new Vector2(-85.0f, 85.0f);
     [SerializeField] private Transform cameraPivot = null;
+    [SerializeField] private LayerMask physicsLayerMask;
+    [SerializeField] private Text debugText;
 
     private bool isJumping = false;
+    private float groundedCoyoteTime = 0.0f;
+    private const float constGroundedCoyoteTime = 0.1f;
 
     private float jumpGraceTimeTemp;
 
@@ -49,21 +55,7 @@ public class PlayerController : MonoBehaviour
     {
         ActionLookAround(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         ActionMove(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"), Input.GetButtonDown("Jump"));
-
-        if (jumpGraceTimeTemp > 0.0f)
-        {
-            jumpGraceTimeTemp -= Time.deltaTime;
-        }
-        else
-        {
-            isJumping = true;
-        }
-
-        if (charController.isGrounded)
-        {
-            jumpGraceTimeTemp = jumpGraceTime;
-            isJumping = false;
-        }
+        CalculateJumpGraceTime();
     }
 
     void OnControllerColliderHit(ControllerColliderHit hit)
@@ -140,59 +132,86 @@ public class PlayerController : MonoBehaviour
         Vector3 sideLookVector = Vector3.Cross(lookVector, Vector3.down);
         moveDirection = Vector3.Normalize(lookVector * y + sideLookVector * x);
 
-        //Calculate movement on XZ plane
-        Vector3 tempVector = moveVector;
-        tempVector.y = 0.0f;
+        //Get a vector pointing downwards a slope
+        Vector2 slopeTemp = Vector2.Perpendicular(new Vector2(slopeNormal.x, slopeNormal.z));
+        Vector3 slopeTemp2 = Vector3.Normalize(Vector3.Cross(slopeNormal, new Vector3(slopeTemp.x, 0.0f, slopeTemp.y)));
 
-        tempVector += charController.isGrounded ?
-            moveDirection * acceleration * Time.deltaTime
-            : moveDirection * airAcceleration * Time.deltaTime;
-
-        //Calculate friction when character is on ground
-        if (charController.isGrounded)
-        {
-            tempVector -= tempVector * friction;
-        }
-
-        //If character is going faster than maxSpeed, clamp the speed
-        if ((Mathf.Abs(tempVector.x) + Mathf.Abs(tempVector.z)) / 2 > maxSpeed)
-        {
-            tempVector = tempVector.normalized * maxSpeed;
-        }
-
-        moveVector.x = tempVector.x;
-        moveVector.z = tempVector.z;
-
-        //Jumping
+        //Allow normal character movement if not on a slope
         if (charController.isGrounded)
         {
             if (Vector3.Angle(Vector3.up, slopeNormal) < charController.slopeLimit)
             {
-                if (jump)
+                //Calculate movement on XZ plane
+                Vector3 tempVector = moveVector;
+                tempVector.y = Physics.gravity.y * Time.deltaTime;
+                tempVector += moveDirection * acceleration * Time.deltaTime;
+
+                //Calculate friction
+                tempVector -= tempVector * friction;
+
+                //If character is going faster than maxSpeed, clamp the speed
+                if ((Mathf.Abs(tempVector.x) + Mathf.Abs(tempVector.z)) / 2 > maxSpeed)
                 {
-                    moveVector.y = jumpForce;
-                    isJumping = true;
+                    tempVector = tempVector.normalized * maxSpeed;
                 }
-                else
+
+                Debug.DrawLine(
+                    transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * charController.radius,
+                    transform.position + Vector3.down * (0.01f + smoothStepDown) + Vector3.Normalize(tempVector) * charController.radius,
+                    Color.cyan
+                    );
+
+                RaycastHit hit;
+                if (Physics.Raycast(
+                    transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * charController.radius,
+                    Vector3.down,
+                    out hit,
+                    0.01f + smoothStepDown,
+                    physicsLayerMask
+                    ))
                 {
-                    moveVector.y = 0.0f;
+                    tempVector.y = -charController.slopeLimit;
                 }
+
+
+                //Project on slope plane
+                //tempVector = Vector3.ProjectOnPlane(tempVector, slopeNormal);
+
+                moveVector = tempVector;
             }
             else
             {
-                Vector2 slopeTemp = Vector2.Perpendicular(new Vector2(slopeNormal.x, slopeNormal.z));
-                Vector3 slopeTemp2 = Vector3.Normalize(Vector3.Cross(slopeNormal, new Vector3(slopeTemp.x, 0.0f, slopeTemp.y)));
                 moveVector += slopeTemp2 * -Physics.gravity.y * gravityMultiplier * Time.deltaTime;
             }
         }
         else
         {
-            if (jump && isJumping == false)
+            //Calculate movement on XZ plane
+            Vector3 tempVector = moveVector;
+            tempVector.y = 0.0f;
+
+            tempVector += moveDirection * airAcceleration * Time.deltaTime;
+
+            //Calculate friction
+            tempVector -= tempVector * airFriction;
+
+            //If character is going faster than maxSpeed, clamp the speed
+            if ((Mathf.Abs(tempVector.x) + Mathf.Abs(tempVector.z)) / 2 > maxSpeed)
             {
-                moveVector.y = jumpForce;
-                isJumping = true;
+                tempVector = tempVector.normalized * maxSpeed;
             }
+
+            moveVector.x = tempVector.x;
+            moveVector.z = tempVector.z;
+
             moveVector += Physics.gravity * gravityMultiplier * Time.deltaTime;
+        }
+
+        //Jumping
+        if (jump && isJumping == false)
+        {
+            moveVector.y = jumpForce;
+            isJumping = true;
         }
 
         Debug.DrawLine(transform.position, transform.position + lookVector, Color.blue);    //Forward vector
@@ -200,8 +219,27 @@ public class PlayerController : MonoBehaviour
         Debug.DrawLine(transform.position, transform.position + Vector3.up, Color.green);   //Up vector
         Debug.DrawLine(transform.position + Vector3.up, transform.position + Vector3.up + moveDirection, Color.cyan); //Desired movement unit vector
         Debug.DrawLine(transform.position + Vector3.up, transform.position + Vector3.up + moveVector.normalized, Color.magenta); //Desired movement unit vector
-
+        
         charController.Move(moveVector * Time.deltaTime);
+        debugText.text = groundedCoyoteTime.ToString();
+    }
+
+    void CalculateJumpGraceTime()
+    {
+        if (jumpGraceTimeTemp > 0.0f)
+        {
+            jumpGraceTimeTemp -= Time.deltaTime;
+        }
+        else
+        {
+            isJumping = true;
+        }
+
+        if (charController.isGrounded)
+        {
+            jumpGraceTimeTemp = jumpGraceTime;
+            isJumping = false;
+        }
     }
 
     #endregion
