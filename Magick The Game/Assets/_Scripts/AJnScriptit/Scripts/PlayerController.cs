@@ -7,6 +7,8 @@ public class PlayerController : MonoBehaviour
 {
     #region VARIABLES
 
+    private bool enableControls = true;
+
     //Camera
     public bool invertY = false;
     public Vector2 sensitivity = new Vector2(1.0f, 1.0f);
@@ -20,14 +22,10 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] private float acceleration = 200.0f;
     [SerializeField] private float airAcceleration = 20.0f;
-    //[SerializeField] private float maxSpeed = 10.0f;
     [SerializeField] private float friction = 0.2f;
     [SerializeField] private float airFriction = 0.02f;
     [SerializeField] private float gravityMultiplier = 3.0f;
     [SerializeField] private float smoothStepDown = 0.5f;
-
-    //private float groundedCoyoteTime = 0.0f;
-    //private const float constGroundedCoyoteTime = 0.1f;
 
     private Vector3 moveDirection = Vector3.zero;
     private Vector3 moveVector = Vector3.zero;
@@ -69,12 +67,25 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void OnEnable()
+    {
+        EnableControls(true);
+    }
+
+    void OnDisable()
+    {
+        EnableControls(false);
+    }
+
     void Update()
     {
-        CalculateMovingPlatform();
-        ActionLookAround(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-        ActionMove(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"), Input.GetButtonDown("Jump"), Input.GetButtonDown("Fire3"));
-        CalculateCooldowns();
+        if (enableControls)
+        {
+            CalculateMovingPlatform();
+            ActionLookAround(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+            ActionMove(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"), Input.GetButtonDown("Jump"), Input.GetButtonDown("Fire3"));
+            CalculateCooldowns();
+        }
     }
 
     void OnControllerColliderHit(ControllerColliderHit hit)
@@ -91,10 +102,19 @@ public class PlayerController : MonoBehaviour
         Debug.DrawLine(hit.point, hit.point + hit.normal * 0.2f, (charController.isGrounded ? Color.green : Color.red), 0.5f);   //Slope normal vector
         Debug.DrawLine(hit.point, hit.point + temp2 * 0.2f, Color.blue, 0.5f);         //Vector pointing down the slope
     }
-    
+
     #endregion
 
     #region CUSTOM_METHODS
+
+    public void EnableControls(bool b)
+    {
+        enableControls = b;
+        Cursor.lockState = enableControls ?
+            CursorLockMode.Locked
+            : CursorLockMode.None;
+        Cursor.visible = !enableControls;
+    }
 
     void ActionLookAround(float x, float y)
     {
@@ -120,10 +140,6 @@ public class PlayerController : MonoBehaviour
         Vector3 lookVector = new Vector3(Mathf.Sin(lookDirection.y * Mathf.Deg2Rad), 0.0f, Mathf.Cos(lookDirection.y * Mathf.Deg2Rad));
         Vector3 sideLookVector = Vector3.Cross(lookVector, Vector3.down);
         moveDirection = Vector3.Normalize(lookVector * y + sideLookVector * x);
-
-        //Get a vector pointing downwards a slope
-        Vector2 slopeTemp = Vector2.Perpendicular(new Vector2(slopeNormal.x, slopeNormal.z));
-        Vector3 slopeTemp2 = Vector3.Normalize(Vector3.Cross(slopeNormal, new Vector3(slopeTemp.x, 0.0f, slopeTemp.y)));
 
         //Allow normal movement if not on a slope
         if (Vector3.Angle(Vector3.up, slopeNormal) < charController.slopeLimit)
@@ -157,9 +173,9 @@ public class PlayerController : MonoBehaviour
             if (isGrounded)
             {
                 Debug.DrawLine(
-                transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * charController.radius,
-                transform.position + Vector3.down * (0.01f + smoothStepDown) + Vector3.Normalize(tempVector) * charController.radius,
-                Color.cyan
+                    transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * charController.radius,
+                    transform.position + Vector3.down * (0.01f + smoothStepDown) + Vector3.Normalize(tempVector) * charController.radius,
+                    Color.cyan
                 );
 
                 RaycastHit hit;
@@ -193,6 +209,10 @@ public class PlayerController : MonoBehaviour
         //Do something else when on a steep slope
         else
         {
+            //Get a vector pointing downwards a slope
+            Vector2 slopeTemp = Vector2.Perpendicular(new Vector2(slopeNormal.x, slopeNormal.z));
+            Vector3 slopeTemp2 = Vector3.Normalize(Vector3.Cross(slopeNormal, new Vector3(slopeTemp.x, 0.0f, slopeTemp.y)));
+
             if (isGrounded)
             {
                 moveVector += slopeTemp2 * -Physics.gravity.y * gravityMultiplier * Time.deltaTime;
