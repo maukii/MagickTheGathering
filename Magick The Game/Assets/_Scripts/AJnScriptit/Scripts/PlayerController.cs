@@ -8,6 +8,7 @@ public class PlayerController : MonoBehaviour
     #region VARIABLES
 
     private bool enableControls = true;
+    private bool isDead = false;
 
     //Camera
     public bool invertY = false;
@@ -39,7 +40,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float dashJumpForce = 5.0f;
     [SerializeField] private float dashDuration = 1.0f;
     [SerializeField] private float dashCooldown = 2.0f;
-    
+
     private float jumpGraceTimeTemp = 0.0f;
     private float dashDurationTemp = 0.0f;
     private float dashCooldownTemp = 0.0f;
@@ -79,7 +80,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (enableControls)
+        if (enableControls && !isDead)
         {
             CalculateMovingPlatform();
             ActionLookAround(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
@@ -103,6 +104,15 @@ public class PlayerController : MonoBehaviour
         Debug.DrawLine(hit.point, hit.point + temp2 * 0.2f, Color.blue, 0.5f);         //Vector pointing down the slope
     }
 
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.tag == "TriggerKill")
+        {
+            isDead = true;
+            EnableControls(false);
+        }
+    }
+
     #endregion
 
     #region CUSTOM_METHODS
@@ -114,6 +124,11 @@ public class PlayerController : MonoBehaviour
             CursorLockMode.Locked
             : CursorLockMode.None;
         Cursor.visible = !enableControls;
+    }
+
+    public bool CheckIfDead()
+    {
+        return isDead;
     }
 
     void ActionLookAround(float x, float y)

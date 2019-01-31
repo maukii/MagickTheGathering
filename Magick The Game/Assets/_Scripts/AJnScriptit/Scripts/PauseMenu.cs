@@ -27,9 +27,12 @@ public class PauseMenu : MonoBehaviour
 
     public void FlipPauseState()
     {
-        isPaused = !isPaused;
-        pauseObject.SetActive(isPaused);
-        player.EnableControls(!isPaused);
-        Time.timeScale = isPaused ? 0.0f : 1.0f;
+        if (!player.CheckIfDead())
+        {
+            isPaused = !isPaused;
+            pauseObject.SetActive(isPaused);
+            player.EnableControls(!isPaused);
+            Time.timeScale = isPaused ? 0.0f : 1.0f;
+        }
     }
 }
