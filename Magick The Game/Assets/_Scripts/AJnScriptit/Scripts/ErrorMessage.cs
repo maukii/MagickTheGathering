@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 public class ErrorMessage : MonoBehaviour
 {
-    [SerializeField] private Text errorText;
-    [SerializeField] private Text pressAnyKeyText;
+    [SerializeField] private Text errorText = null;
+    [SerializeField] private Text pressAnyKeyText = null;
     [SerializeField] private float keyPressDelay = 3.0f;
     private float keyPressDelayTemp;
 

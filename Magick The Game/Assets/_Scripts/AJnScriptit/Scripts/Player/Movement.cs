@@ -1,31 +1,31 @@
 ﻿//using System.Collections;
 //using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class PlayerController : MonoBehaviour
+public class Movement : MonoBehaviour
 {
     #region VARIABLES
 
-    private bool enableControls = true;
-    private bool isDead = false;
+    //Input
+    [HideInInspector] public bool enableMovement = true;
+
+    private Vector2 inputMove = Vector2.zero;
+    private bool inputJump = false;
+    private bool inputDash = false;
 
     //Camera
-    public bool invertY = false;
-    public Vector2 sensitivity = new Vector2(1.0f, 1.0f);
+    [Header("Getting camera controller enables movement towards look direction!")]
+    [SerializeField] private bool getCameraController;
 
-    [SerializeField] private Vector2 minMaxPitch = new Vector2(-85.0f, 85.0f);
-    [SerializeField] private Transform cameraPivot = null;
-
-    private Vector3 lookDirection = Vector3.zero;
+    private ThirdPersonCamera tpCamera;
+    private Vector3 lookDirection = Vector3.forward;
 
     //Movement
-
     [SerializeField] private float acceleration = 200.0f;
     [SerializeField] private float airAcceleration = 20.0f;
     [SerializeField] private float friction = 0.2f;
     [SerializeField] private float airFriction = 0.02f;
-    [SerializeField] private float gravityMultiplier = 3.0f;
+    [SerializeField] private float gravity = -9.81f;
     [SerializeField] private float smoothStepDown = 0.5f;
 
     private Vector3 moveDirection = Vector3.zero;
@@ -33,7 +33,6 @@ public class PlayerController : MonoBehaviour
     private Vector3 slopeNormal = Vector3.zero;
 
     //Abilities
-
     [SerializeField] private float jumpForce = 15.0f;
     [SerializeField] private float jumpGraceTime = 0.1f;
     [SerializeField] private float dashSpeed = 10.0f;
@@ -45,9 +44,8 @@ public class PlayerController : MonoBehaviour
     private float dashDurationTemp = 0.0f;
     private float dashCooldownTemp = 0.0f;
 
-    //Miscellaneous
+    //Physics
     [SerializeField] private LayerMask physicsLayerMask;
-    [SerializeField] private Text debugText;
 
     private CharacterController charController;
     private Transform movingPlatform = null;
@@ -61,30 +59,37 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         charController = GetComponent<CharacterController>();
-        if (cameraPivot == null)
+
+        if (getCameraController)
         {
-            Debug.LogWarning(this + " is missing a camera pivot reference!");
-            this.enabled = false;
+            if (GetComponent<ThirdPersonCamera>() != null)
+            {
+                tpCamera = GetComponent<ThirdPersonCamera>();
+            }
+            else
+            {
+                Debug.LogError(this + " tried to find a third person camera controller, but failed!");
+                getCameraController = false;
+            }
         }
-    }
 
-    void OnEnable()
-    {
-        EnableControls(true);
-    }
-
-    void OnDisable()
-    {
-        EnableControls(false);
+        if (physicsLayerMask.value == 0)
+        {
+            physicsLayerMask = LayerMask.GetMask("Default");
+        }
     }
 
     void Update()
     {
-        if (enableControls && !isDead)
+        if (getCameraController && tpCamera != null)
+        {
+            lookDirection = tpCamera.GetLookDirection();
+        }
+
+        if (enableMovement)
         {
             CalculateMovingPlatform();
-            ActionLookAround(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-            ActionMove(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"), Input.GetButtonDown("Jump"), Input.GetButtonDown("Fire3"));
+            Move(inputMove.x, inputMove.y, inputJump, inputDash);
             CalculateCooldowns();
         }
     }
@@ -104,12 +109,18 @@ public class PlayerController : MonoBehaviour
         Debug.DrawLine(hit.point, hit.point + temp2 * 0.2f, Color.blue, 0.5f);         //Vector pointing down the slope
     }
 
-    void OnTriggerEnter(Collider other)
+    void OnTriggerStay(Collider other)
     {
         if (other.tag == "TriggerKill")
         {
-            isDead = true;
-            EnableControls(false);
+            if (other.GetComponent<TriggerHurt>().killInstantly)
+            {
+                GetComponent<Health>().Slay();
+            }
+            else
+            {
+                GetComponent<Health>().Hit(other.GetComponent<TriggerHurt>().damage);
+            }
         }
     }
 
@@ -117,32 +128,26 @@ public class PlayerController : MonoBehaviour
 
     #region CUSTOM_METHODS
 
-    public void EnableControls(bool b)
+    public void SetInput(string ability, bool b)
     {
-        enableControls = b;
-        Cursor.lockState = enableControls ?
-            CursorLockMode.Locked
-            : CursorLockMode.None;
-        Cursor.visible = !enableControls;
+        switch (ability)
+        {
+            case "Jump": inputJump = b; break;
+            case "Dash": inputDash = b; break;
+            default: break;
+        }
     }
 
-    public bool CheckIfDead()
+    public void SetInput(string ability, Vector2 vector2)
     {
-        return isDead;
+        switch (ability)
+        {
+            case "Move": inputMove = vector2; break;
+            default: break;
+        }
     }
 
-    void ActionLookAround(float x, float y)
-    {
-        lookDirection.x += y * sensitivity.x * (invertY ? 1.0f : -1.0f);
-        lookDirection.y += x * sensitivity.y;
-
-        if (lookDirection.x < minMaxPitch.x) { lookDirection.x = minMaxPitch.x; }
-        if (lookDirection.x > minMaxPitch.y) { lookDirection.x = minMaxPitch.y; }
-
-        cameraPivot.localRotation = Quaternion.Euler(lookDirection);
-    }
-
-    void ActionMove(float x, float y, bool jump, bool dash)
+    void Move(float x, float y, bool jump, bool dash)
     {
         bool isGrounded = charController.isGrounded;
         if ((charController.collisionFlags & CollisionFlags.Below) == 0)
@@ -150,12 +155,20 @@ public class PlayerController : MonoBehaviour
             slopeNormal = Vector3.up;
             movingPlatform = null;
         }
+        if (slopeNormal.y <= 0.0f)
+        {
+            slopeNormal = Vector3.up;
+        }
 
         //Get the desired movement unit vector based on where the player is looking at
         Vector3 lookVector = new Vector3(Mathf.Sin(lookDirection.y * Mathf.Deg2Rad), 0.0f, Mathf.Cos(lookDirection.y * Mathf.Deg2Rad));
         Vector3 sideLookVector = Vector3.Cross(lookVector, Vector3.down);
         moveDirection = Vector3.Normalize(lookVector * y + sideLookVector * x);
 
+        //Get a vector pointing downwards a slope
+        Vector2 slopeTemp = Vector2.Perpendicular(new Vector2(slopeNormal.x, slopeNormal.z));
+        Vector3 slopeTemp2 = Vector3.Normalize(Vector3.Cross(slopeNormal, new Vector3(slopeTemp.x, 0.0f, slopeTemp.y)));
+        
         //Allow normal movement if not on a slope
         if (Vector3.Angle(Vector3.up, slopeNormal) < charController.slopeLimit)
         {
@@ -169,12 +182,6 @@ public class PlayerController : MonoBehaviour
                     moveDirection * acceleration * Time.deltaTime
                     : moveDirection * airAcceleration * Time.deltaTime;
             }
-
-            //Clamp the speed (not needed, friction already does this for us)
-            //if ((Mathf.Abs(tempVector.x) + Mathf.Abs(tempVector.z) / 2) > maxSpeed)
-            //{
-            //    tempVector = tempVector.normalized * maxSpeed;
-            //}
 
             //Calculate friction
             if (dashDurationTemp <= 0.0f)
@@ -207,8 +214,8 @@ public class PlayerController : MonoBehaviour
             }
             
             tempVector.y = isGrounded ?
-                tempVector.y + Physics.gravity.y * Time.deltaTime
-                : moveVector.y + Physics.gravity.y * gravityMultiplier * Time.deltaTime;
+                tempVector.y + gravity * Time.deltaTime
+                : moveVector.y + gravity * Time.deltaTime;
 
             //Dashing
             if (dash && dashCooldownTemp <= 0.0f && dashDurationTemp <= 0.0f)
@@ -220,24 +227,21 @@ public class PlayerController : MonoBehaviour
             }
 
             moveVector = tempVector;
+
+            //Jumping
+            if (jump && jumpGraceTimeTemp > 0.0f)
+            {
+                moveVector.y = jumpForce;
+            }
         }
         //Do something else when on a steep slope
         else
         {
-            //Get a vector pointing downwards a slope
-            Vector2 slopeTemp = Vector2.Perpendicular(new Vector2(slopeNormal.x, slopeNormal.z));
-            Vector3 slopeTemp2 = Vector3.Normalize(Vector3.Cross(slopeNormal, new Vector3(slopeTemp.x, 0.0f, slopeTemp.y)));
-
             if (isGrounded)
             {
-                moveVector += slopeTemp2 * -Physics.gravity.y * gravityMultiplier * Time.deltaTime;
+                moveVector = Vector3.ProjectOnPlane(moveVector, slopeNormal);
+                moveVector += slopeTemp2 * -gravity * Time.deltaTime;
             }
-        }
-
-        //Jumping
-        if (jump && jumpGraceTimeTemp > 0.0f)
-        {
-            moveVector.y = jumpForce;
         }
 
         //Stop vertical movement if hitting a ceiling
@@ -246,7 +250,7 @@ public class PlayerController : MonoBehaviour
             moveVector.y = 0.0f;
         }
 
-        //Debug stuff
+        ////Debug stuff
         Debug.DrawLine(transform.position, transform.position + lookVector, Color.blue);    //Forward vector
         Debug.DrawLine(transform.position, transform.position + sideLookVector, Color.red); //Right vector
         Debug.DrawLine(transform.position, transform.position + Vector3.up, Color.green);   //Up vector
@@ -263,7 +267,7 @@ public class PlayerController : MonoBehaviour
             if (movingPlatformPrevPosition != Vector3.zero)
             {
                 movingPlatformVelocity = movingPlatform.position - movingPlatformPrevPosition;
-                movingPlatformVelocity.y += Physics.gravity.y * Time.deltaTime;
+                movingPlatformVelocity.y += -1.0f * Time.deltaTime;
             }
             movingPlatformPrevPosition = movingPlatform.position;
         }

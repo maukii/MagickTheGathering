@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class PlayerModelRotator : MonoBehaviour
 {
-    [SerializeField] private Transform cameraLockTarget;
-    [SerializeField] private Vector3 offset;
+    [SerializeField] private Transform cameraLockTarget = null;
+    [SerializeField] private Vector3 offset = Vector3.zero;
 
     void Start()
     {

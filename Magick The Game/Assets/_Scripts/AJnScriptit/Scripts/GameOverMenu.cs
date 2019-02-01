@@ -2,22 +2,15 @@
 
 public class GameOverMenu : MonoBehaviour
 {
-    [SerializeField] private PlayerController player;
-    [SerializeField] private GameObject gameOverObject;
+    [SerializeField] private GameObject gameOverObject = null;
 
     void Start()
     {
-        if (!player.CheckIfDead() && gameOverObject.activeInHierarchy)
-        {
-            gameOverObject.SetActive(false);
-        }
+        gameOverObject.SetActive(false);
     }
 
-    void Update()
+    public void Activate()
     {
-        if (player.CheckIfDead())
-        {
-            gameOverObject.SetActive(true);
-        }
+        gameOverObject.SetActive(true);
     }
 }
