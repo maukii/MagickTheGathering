@@ -6,6 +6,14 @@ TagManager:
   tags:
   - MovingPlatform
   - TriggerKill
+  - WallOfDeathReset
+  - TrapDoor
+  - Throwable
+  - Falling
+  - WallOfDeath
+  - DestructibleWall
+  - DestructibleFloor
+  - Crushing
   layers:
   - Default
   - TransparentFX
