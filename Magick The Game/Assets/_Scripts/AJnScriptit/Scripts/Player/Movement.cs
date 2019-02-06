@@ -96,7 +96,31 @@ public class Movement : MonoBehaviour
 
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        slopeNormal = hit.normal;
+        RaycastHit rcHit;
+        if (Physics.Raycast(
+            transform.position + Vector3.up * (charController.height / 2),
+            Vector3.down,
+            out rcHit,
+            Mathf.Infinity,
+            physicsLayerMask
+            ))
+        {
+            if (AlmostEqual(hit.normal, rcHit.normal, 0.01f))
+            {
+                slopeNormal = hit.normal;
+            }
+            else
+            {
+                //Most likely standing on stairs
+                slopeNormal = Vector3.up;
+            }
+        }
+        else
+        {
+            //We hit a collider but received nothing from raycast,
+            //assume that we hit a wall / ceiling / other
+            slopeNormal = Vector3.up;
+        }
 
         if (hit.gameObject.tag == "MovingPlatform")
         {
@@ -105,7 +129,7 @@ public class Movement : MonoBehaviour
 
         Vector2 temp = Vector2.Perpendicular(new Vector2(hit.normal.x, hit.normal.z));
         Vector3 temp2 = Vector3.Normalize(Vector3.Cross(hit.normal, new Vector3(temp.x, 0.0f, temp.y)));
-        Debug.DrawLine(hit.point, hit.point + hit.normal * 0.2f, (charController.isGrounded ? Color.green : Color.red), 0.5f);   //Slope normal vector
+        Debug.DrawLine(hit.point, hit.point + hit.normal * 0.2f, (Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal)) < charController.slopeLimit ? Color.green : Color.red), 0.5f);   //Slope normal vector
         Debug.DrawLine(hit.point, hit.point + temp2 * 0.2f, Color.blue, 0.5f);         //Vector pointing down the slope
     }
 
@@ -152,12 +176,8 @@ public class Movement : MonoBehaviour
         bool isGrounded = charController.isGrounded;
         if ((charController.collisionFlags & CollisionFlags.Below) == 0)
         {
-            slopeNormal = Vector3.up;
+            //slopeNormal = Vector3.up;
             movingPlatform = null;
-        }
-        if (slopeNormal.y <= 0.0f)
-        {
-            slopeNormal = Vector3.up;
         }
 
         //Get the desired movement unit vector based on where the player is looking at
@@ -237,10 +257,21 @@ public class Movement : MonoBehaviour
         //Do something else when on a steep slope
         else
         {
-            if (isGrounded)
+            Vector3 tempVector = moveDirection * airAcceleration * Time.deltaTime;
+            tempVector = Vector3.ProjectOnPlane(tempVector, slopeNormal);
+            moveVector = Vector3.ProjectOnPlane(moveVector, slopeNormal);
+            moveVector += tempVector + slopeTemp2 * -gravity * Time.deltaTime;
+
+            RaycastHit hit;
+            if (!Physics.Raycast(
+                transform.position + slopeNormal + moveVector * Time.deltaTime,
+                -slopeNormal,
+                out hit,
+                1.0f + 0.5f,
+                physicsLayerMask
+                ))
             {
-                moveVector = Vector3.ProjectOnPlane(moveVector, slopeNormal);
-                moveVector += slopeTemp2 * -gravity * Time.deltaTime;
+                slopeNormal = Vector3.up;
             }
         }
 
@@ -301,6 +332,13 @@ public class Movement : MonoBehaviour
                 dashCooldownTemp -= Time.deltaTime;
             }
         }
+    }
+
+    bool AlmostEqual(Vector3 v1, Vector3 v2, float precision)
+    {
+        bool equal = true;
+        if (Mathf.Abs(Vector3.Angle(v1, v2)) > precision) { equal = false; }
+        return equal;
     }
 
     #endregion
