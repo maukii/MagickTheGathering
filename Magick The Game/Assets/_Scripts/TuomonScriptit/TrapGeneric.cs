@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TrapWall : MonoBehaviour
+public class TrapGeneric : MonoBehaviour
 {
     //works for falling bookcases/pillars, wall of death-traps and trap doors
     //goes to the trigger/pivot object
@@ -20,6 +20,12 @@ public class TrapWall : MonoBehaviour
     {
         if (other.gameObject.tag == "Player")
         {
+            if (gameObject.tag == "Crushing")
+            {
+                rb.isKinematic = false;
+                Destroy(gameObject);
+            }
+
             if (gameObject.tag == "Falling")
             {
                 rb.AddForceAtPosition(direction * 200f, rb.position);

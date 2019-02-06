@@ -776,7 +776,7 @@ GameObject:
   - component: {fileID: 224147081}
   m_Layer: 0
   m_Name: Trigger
-  m_TagString: WallOfDeathReset
+  m_TagString: Crushing
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -862,10 +862,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 224147076}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b332761d17dab274b88c781ca4a0fbe5, type: 3}
+  m_Script: {fileID: 11500000, guid: a70e19876b5c93e4383a6aa632a3d70a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  anim: {fileID: 0}
   rb: {fileID: 488250582}
+  direction: {x: 0, y: 0, z: 0}
 --- !u!1 &274129647
 GameObject:
   m_ObjectHideFlags: 0
@@ -1422,6 +1424,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 343515093}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &353778932 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 366472666550424864, guid: 0fceb9effa83d094a96cd97b4a2a67e9,
+    type: 3}
+  m_PrefabInstance: {fileID: 1510062012}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &353778939
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 353778932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49eed2d4348a2ff48a2b0036e2faac92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 0
 --- !u!1 &368796687
 GameObject:
   m_ObjectHideFlags: 0
@@ -1875,7 +1896,7 @@ Rigidbody:
   m_Drag: 0
   m_AngularDrag: 0.05
   m_UseGravity: 1
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
@@ -2162,7 +2183,7 @@ PrefabInstance:
     - target: {fileID: 3898505161854212612, guid: 77773840d3c2c60499bed67952e7ad2e,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.32
+      value: 2.06
       objectReference: {fileID: 0}
     - target: {fileID: 3898505161854212612, guid: 77773840d3c2c60499bed67952e7ad2e,
         type: 3}
@@ -2975,7 +2996,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 606825515}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!4 &606825519
 Transform:
   m_ObjectHideFlags: 0
@@ -2984,7 +3005,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 606825515}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 11.88, y: 0.5, z: 12.54}
+  m_LocalPosition: {x: 11.88, y: 0.513, z: 12.54}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -8721,7 +8742,7 @@ GameObject:
   - component: {fileID: 1948290586}
   m_Layer: 0
   m_Name: Trigger
-  m_TagString: Untagged
+  m_TagString: Crushing
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -8807,10 +8828,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1948290581}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b332761d17dab274b88c781ca4a0fbe5, type: 3}
+  m_Script: {fileID: 11500000, guid: a70e19876b5c93e4383a6aa632a3d70a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  anim: {fileID: 0}
   rb: {fileID: 601826681}
+  direction: {x: 0, y: 0, z: 0}
 --- !u!1 &1963628693
 GameObject:
   m_ObjectHideFlags: 0

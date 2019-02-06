@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TempMovement : MonoBehaviour
+public class ObjectThrowing : MonoBehaviour
 {
     public float speed;
 
@@ -10,19 +10,12 @@ public class TempMovement : MonoBehaviour
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
         player = GetComponent<Transform>();
         speed = 25f;
     }
 
     void Update()
     {
-        transform.Translate(Input.GetAxis("Horizontal") * Time.deltaTime * 7.5f, 0f, Input.GetAxis("Vertical") * Time.deltaTime * 7.5f, Space.Self);
-        transform.Rotate(0f, Input.GetAxis("Mouse X") * Time.deltaTime * 30f, 0f, Space.World);
-        transform.Rotate(-Input.GetAxis("Mouse Y") * Time.deltaTime * 30f, 0f, 0f, Space.Self);
-
         RaycastHit hit;
 
         Debug.DrawRay(player.position, Vector3.forward);
