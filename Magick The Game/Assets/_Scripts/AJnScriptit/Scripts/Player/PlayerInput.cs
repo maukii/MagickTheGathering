@@ -34,6 +34,11 @@ public class PlayerInput : MonoBehaviour
                 pauseMenu.FlipPauseState(this);
             }
         }
+
+        if (Input.GetButtonDown("Fire2"))
+        {
+            tpCamera.SwitchSide();
+        }
     }
 
     void OnEnable()

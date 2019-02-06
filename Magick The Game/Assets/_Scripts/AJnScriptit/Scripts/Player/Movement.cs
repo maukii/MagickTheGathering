@@ -225,7 +225,7 @@ public class Movement : MonoBehaviour
                     transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * charController.radius,
                     Vector3.down,
                     out hit,
-                    0.01f + smoothStepDown,
+                    charController.skinWidth + smoothStepDown,
                     physicsLayerMask
                     ))
                 {

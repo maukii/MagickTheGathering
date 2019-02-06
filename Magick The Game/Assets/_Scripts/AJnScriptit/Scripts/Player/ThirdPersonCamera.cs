@@ -54,5 +54,21 @@ public class ThirdPersonCamera : MonoBehaviour
         return lookDirection;
     }
 
+    public Transform GetCameraPivot()
+    {
+        return cameraPivot;
+    }
+
+    public void SwitchSide()
+    {
+        if (enableLooking)
+        {
+            Transform camera = cameraPivot.GetChild(0);
+            Vector3 camPos = camera.localPosition;
+            camPos.x *= -1;
+            camera.localPosition = camPos;
+        }
+    }
+
     #endregion
 }
