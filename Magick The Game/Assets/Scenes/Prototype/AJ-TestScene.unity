@@ -7230,7 +7230,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh11980
+  m_Name: pb_Mesh14360
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -7822,7 +7822,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh11902
+  m_Name: pb_Mesh14282
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -9222,7 +9222,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh11890
+  m_Name: pb_Mesh14270
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -14074,42 +14074,6 @@ Transform:
   m_Father: {fileID: 1299181938}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: -180, y: 0, z: 0}
---- !u!1 &1718355853 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 366472666550424864, guid: 0fceb9effa83d094a96cd97b4a2a67e9,
-    type: 3}
-  m_PrefabInstance: {fileID: 366472666166418844}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1718355856 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 366472666550424925, guid: 0fceb9effa83d094a96cd97b4a2a67e9,
-    type: 3}
-  m_PrefabInstance: {fileID: 366472666166418844}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1718355853}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7ca1f4bb94730ea4f860ca0beda35578, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &1718355860
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1718355853}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6aa40ffd5f680ed46ac31c0fd357a5cf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  tpCamera: {fileID: 1718355856}
-  projectile: {fileID: 5925449961177488333, guid: 3a7e1d96025b587499253f66674d1fbb,
-    type: 3}
-  physicsLayerMask:
-    serializedVersion: 2
-    m_Bits: 1
 --- !u!1 &1737206197
 GameObject:
   m_ObjectHideFlags: 0
@@ -19544,10 +19508,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 366472665229108423, guid: 0fceb9effa83d094a96cd97b4a2a67e9,
+    - target: {fileID: 5330621822613013845, guid: 0fceb9effa83d094a96cd97b4a2a67e9,
         type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
+      propertyPath: healthAmount
+      value: 150
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0fceb9effa83d094a96cd97b4a2a67e9, type: 3}

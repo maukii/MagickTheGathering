@@ -1,30 +1,14 @@
-﻿//using System.Collections;
-//using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Health : MonoBehaviour
 {
     #region VARIABLES
 
-    [SerializeField] private float health = 100.0f;
-    [SerializeField] private float iFrameTime = 1.0f;
-
-    [Header("Is character controller by player or AI?")]
-    [SerializeField] private bool getPlayerInput = false;
-
-    [Header("Getting movement controls enables knockback!")]
-    [SerializeField] private bool getMovementController = false;
-
-    [Header("Set Game Over Menu only on player!")]
-    [SerializeField] private GameOverMenu gameOverMenu = null;
-
-    [Header("Set hurt flash only on player!")]
-    [SerializeField] private HurtFlash hurtFlash = null;
-
-    private bool isDead = false;
-    private float iFrameTimeTemp = 0.0f;
-    private Movement movementController;
-    private PlayerInput input;
+    private bool isPlayer           = false;
+    private bool isDead             = false;
+    private float health            = 100.0f;
+    private float iFrameTime        = 0.5f;
+    private float iFrameTimeTemp    = 0.0f;
 
     #endregion
 
@@ -32,30 +16,11 @@ public class Health : MonoBehaviour
 
     void Start()
     {
-        if (getMovementController)
+        if (GetComponent<PlayerCore>() != null)
         {
-            if (GetComponent<Movement>() != null)
-            {
-                movementController = GetComponent<Movement>();
-            }
-            else
-            {
-                Debug.LogError(this + " tried to find a movement controller, but failed!");
-                getMovementController = false;
-            }
-        }
-
-        if (getPlayerInput)
-        {
-            if (GetComponent<PlayerInput>() != null)
-            {
-                input = GetComponent<PlayerInput>();
-            }
-            else
-            {
-                Debug.LogError(this + " tried to find a player input controller, but failed!");
-                getPlayerInput = false;
-            }
+            isPlayer = true;
+            health = GetComponent<PlayerCore>().Health;
+            iFrameTime = GetComponent<PlayerCore>().IFrames;
         }
     }
 
@@ -92,10 +57,12 @@ public class Health : MonoBehaviour
             {
                 iFrameTimeTemp = iFrameTime;
                 health -= amount;
-                if (hurtFlash != null)
+
+                if (isPlayer)
                 {
-                    hurtFlash.Flash();
+                    GetComponent<PlayerCore>().Hurt();
                 }
+                
                 CheckHealth();
             }
         }
@@ -114,9 +81,9 @@ public class Health : MonoBehaviour
     {
         if (!isDead)
         {
-            if (hurtFlash != null)
+            if (isPlayer)
             {
-                hurtFlash.Flash();
+                GetComponent<PlayerCore>().Hurt();
             }
             Dead();
         }
@@ -126,13 +93,10 @@ public class Health : MonoBehaviour
     {
         health = 0.0f;
         isDead = true;
-        if (getPlayerInput)
+
+        if (isPlayer)
         {
-            input.EnableControls(false);
-        }
-        if (gameOverMenu != null)
-        {
-            gameOverMenu.Activate();
+            GetComponent<PlayerCore>().Dead();
         }
     }
 

@@ -1,29 +1,23 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PauseMenu : MonoBehaviour
 {
     [SerializeField] private GameObject pauseObject = null;
-
     private bool isPaused = false;
-    private PlayerInput caller;
+    private PlayerCore caller;
 
     void Start()
     {
         pauseObject.SetActive(isPaused);
     }
-
-    //→ PlayerInput calls FlipPauseState
-    // → Game pauses, pause menu gets displayed
-    //  → FlipPauseState calls back to PlayerInput and enables/disables controls
-    public void FlipPauseState(PlayerInput pi)
+    
+    public bool FlipPauseState(PlayerCore pc)
     {
-        caller = pi;
+        caller = pc;
         isPaused = !isPaused;
         pauseObject.SetActive(isPaused);
         Time.timeScale = isPaused ? 0.0f : 1.0f;
-        pi.EnableControls(!isPaused);
+        return isPaused;
     }
 
     //Use previous caller if no PlayerInput is specified
@@ -32,12 +26,7 @@ public class PauseMenu : MonoBehaviour
     {
         if (caller != null)
         {
-            FlipPauseState(caller);
+            caller.EnableControls(!FlipPauseState(caller));
         }
-    }
-
-    public bool GetPauseState()
-    {
-        return isPaused;
     }
 }

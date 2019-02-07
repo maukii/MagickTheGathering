@@ -4,41 +4,48 @@ public class ThirdPersonCamera : MonoBehaviour
 {
     #region VARIABLES
 
-    [HideInInspector] public bool enableLooking = true;
-    public bool invertY = false;
-    public Vector2 sensitivity = new Vector2(1.0f, 1.0f);
+    private bool invertY            = false;
+    private Vector2 sensitivity     = new Vector2(1.0f, 1.0f);
+    private Vector2 minMaxPitch     = new Vector2(-85.0f, 85.0f);
+    private Transform cameraPivot   = null;
+    private Vector3 lookDirection   = Vector3.zero;
 
-    [SerializeField] private Vector2 minMaxPitch = new Vector2(-85.0f, 85.0f);
-    [SerializeField] private Transform cameraPivot = null;
+    #endregion
 
-    private Vector3 lookDirection = Vector3.zero;
-    
+    #region VARIABLE_PROPERTIES
+
+    public Vector3 LookDirection { get { return lookDirection; } }
+
     #endregion
 
     #region UNITY_DEFAULT_METHODS
 
     void Start()
     {
+        if (GetComponent<PlayerCore>() != null)
+        {
+            invertY = GetComponent<PlayerCore>().InvertVertical;
+            sensitivity = GetComponent<PlayerCore>().Sensitivity;
+            cameraPivot = GetComponent<PlayerCore>().CameraPivot;
+        }
+        else
+        {
+            Debug.LogError(this + " couldn't find player core!");
+            this.enabled = false;
+        }
+
         if (cameraPivot == null)
         {
-            Debug.LogWarning(this + " is missing a camera pivot reference!");
+            Debug.LogWarning(this + " is missing a camera pivot!");
             this.enabled = false;
         }
     }
 
-    void Update()
-    {
-        if (enableLooking)
-        {
-            LookAround(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-        }
-    }
-    
     #endregion
 
     #region CUSTOM_METHODS
 
-    void LookAround(float x, float y)
+    public void LookAround(float x, float y)
     {
         lookDirection.x += y * sensitivity.x * (invertY ? 1.0f : -1.0f);
         lookDirection.y += x * sensitivity.y;
@@ -49,25 +56,12 @@ public class ThirdPersonCamera : MonoBehaviour
         cameraPivot.localRotation = Quaternion.Euler(lookDirection);
     }
 
-    public Vector3 GetLookDirection()
-    {
-        return lookDirection;
-    }
-
-    public Transform GetCameraPivot()
-    {
-        return cameraPivot;
-    }
-
     public void SwitchSide()
     {
-        if (enableLooking)
-        {
-            Transform camera = cameraPivot.GetChild(0);
-            Vector3 camPos = camera.localPosition;
-            camPos.x *= -1;
-            camera.localPosition = camPos;
-        }
+        Transform camera = cameraPivot.GetChild(0);
+        Vector3 camPos = camera.localPosition;
+        camPos.x *= -1;
+        camera.localPosition = camPos;
     }
 
     #endregion

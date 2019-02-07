@@ -1,56 +1,47 @@
-﻿//using System.Collections;
-//using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class Movement : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
     #region VARIABLES
 
+    //Variables from PlayerCore
+    private PlayerCore playerCore                   = null;
+    private ThirdPersonCamera tpCamera              = null;
+    private Health health                           = null;
+
+    private float acceleration                      = 0.0f;
+    private float airAcceleration                   = 0.0f;
+    private float friction                          = 0.0f;
+    private float airFriction                       = 0.0f;
+    private float gravity                           = 0.0f;
+    private float smoothStepDown                    = 0.0f;
+    private float jumpForce                         = 0.0f;
+    private float jumpGraceTime                     = 0.0f;
+    private float dashSpeed                         = 0.0f;
+    private float dashJumpForce                     = 0.0f;
+    private float dashDuration                      = 0.0f;
+    private float dashCooldown                      = 0.0f;
+    private LayerMask physicsLayerMask              = 1;
+    
     //Input
-    [HideInInspector] public bool enableMovement = true;
+    [HideInInspector] public bool enableMovement    = true;
+    private bool inputJump                          = false;
+    private bool inputDash                          = false;
+    private Vector2 inputMove                       = Vector2.zero;
+    private Vector3 lookDirection                   = Vector3.forward;
 
-    private Vector2 inputMove = Vector2.zero;
-    private bool inputJump = false;
-    private bool inputDash = false;
-
-    //Camera
-    [Header("Getting camera controller enables movement towards look direction!")]
-    [SerializeField] private bool getCameraController;
-
-    private ThirdPersonCamera tpCamera;
-    private Vector3 lookDirection = Vector3.forward;
-
-    //Movement
-    [SerializeField] private float acceleration = 200.0f;
-    [SerializeField] private float airAcceleration = 20.0f;
-    [SerializeField] private float friction = 0.2f;
-    [SerializeField] private float airFriction = 0.02f;
-    [SerializeField] private float gravity = -9.81f;
-    [SerializeField] private float smoothStepDown = 0.5f;
-
-    private Vector3 moveDirection = Vector3.zero;
-    private Vector3 moveVector = Vector3.zero;
-    private Vector3 slopeNormal = Vector3.zero;
-
-    //Abilities
-    [SerializeField] private float jumpForce = 15.0f;
-    [SerializeField] private float jumpGraceTime = 0.1f;
-    [SerializeField] private float dashSpeed = 10.0f;
-    [SerializeField] private float dashJumpForce = 5.0f;
-    [SerializeField] private float dashDuration = 1.0f;
-    [SerializeField] private float dashCooldown = 2.0f;
-
-    private float jumpGraceTimeTemp = 0.0f;
-    private float dashDurationTemp = 0.0f;
-    private float dashCooldownTemp = 0.0f;
-
-    //Physics
-    [SerializeField] private LayerMask physicsLayerMask;
-
-    private CharacterController charController;
-    private Transform movingPlatform = null;
-    private Vector3 movingPlatformPrevPosition = Vector3.zero;
-    private Vector3 movingPlatformVelocity = Vector3.zero;
+    //Temporary values
+    private Vector3 moveDirection                   = Vector3.zero;
+    private Vector3 moveVector                      = Vector3.zero;
+    private Vector3 slopeNormal                     = Vector3.zero;
+    private float jumpGraceTimeTemp                 = 0.0f;
+    private float dashDurationTemp                  = 0.0f;
+    private float dashCooldownTemp                  = 0.0f;
+    
+    private CharacterController charController      = null;
+    private Transform movingPlatform                = null;
+    private Vector3 movingPlatformPrevPosition      = Vector3.zero;
+    private Vector3 movingPlatformVelocity          = Vector3.zero;
 
     #endregion
 
@@ -58,33 +49,29 @@ public class Movement : MonoBehaviour
 
     void Start()
     {
-        charController = GetComponent<CharacterController>();
+        playerCore          = GetComponent<PlayerCore>();
+        charController      = GetComponent<CharacterController>();
+        tpCamera            = playerCore.TpcComponent;
+        health              = playerCore.HealthComponent;
 
-        if (getCameraController)
-        {
-            if (GetComponent<ThirdPersonCamera>() != null)
-            {
-                tpCamera = GetComponent<ThirdPersonCamera>();
-            }
-            else
-            {
-                Debug.LogError(this + " tried to find a third person camera controller, but failed!");
-                getCameraController = false;
-            }
-        }
-
-        if (physicsLayerMask.value == 0)
-        {
-            physicsLayerMask = LayerMask.GetMask("Default");
-        }
+        acceleration        = playerCore.Acceleration;
+        airAcceleration     = playerCore.AirAcceleration;
+        friction            = playerCore.Friction;
+        airFriction         = playerCore.AirFriction;
+        gravity             = playerCore.Gravity;
+        smoothStepDown      = playerCore.SmoothStepDown;
+        jumpForce           = playerCore.JumpForce;
+        jumpGraceTime       = playerCore.JumpGraceTime;
+        dashSpeed           = playerCore.DashSpeed;
+        dashJumpForce       = playerCore.DashJumpForce;
+        dashDuration        = playerCore.DashDuration;
+        dashCooldown        = playerCore.DashCooldown;
+        physicsLayerMask    = playerCore.PhysicsLayerMask;
     }
 
     void Update()
     {
-        if (getCameraController && tpCamera != null)
-        {
-            lookDirection = tpCamera.GetLookDirection();
-        }
+        lookDirection = tpCamera.LookDirection;
 
         if (enableMovement)
         {
@@ -129,8 +116,10 @@ public class Movement : MonoBehaviour
 
         Vector2 temp = Vector2.Perpendicular(new Vector2(hit.normal.x, hit.normal.z));
         Vector3 temp2 = Vector3.Normalize(Vector3.Cross(hit.normal, new Vector3(temp.x, 0.0f, temp.y)));
-        Debug.DrawLine(hit.point, hit.point + hit.normal * 0.2f, (Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal)) < charController.slopeLimit ? Color.green : Color.red), 0.5f);   //Slope normal vector
-        Debug.DrawLine(hit.point, hit.point + temp2 * 0.2f, Color.blue, 0.5f);         //Vector pointing down the slope
+        //Slope normal vector
+        Debug.DrawLine(hit.point, hit.point + hit.normal * 0.2f, (Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal)) < charController.slopeLimit ? Color.green : Color.red), 0.5f);
+        //Vector pointing down the slope
+        Debug.DrawLine(hit.point, hit.point + temp2 * 0.2f, Color.blue, 0.5f);
     }
 
     void OnTriggerStay(Collider other)
@@ -139,11 +128,11 @@ public class Movement : MonoBehaviour
         {
             if (other.GetComponent<TriggerHurt>().killInstantly)
             {
-                GetComponent<Health>().Slay();
+                health.Slay();
             }
             else
             {
-                GetComponent<Health>().Hit(other.GetComponent<TriggerHurt>().damage);
+                health.Hit(other.GetComponent<TriggerHurt>().damage);
             }
         }
     }
