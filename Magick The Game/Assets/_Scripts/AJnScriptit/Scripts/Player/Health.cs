@@ -12,6 +12,12 @@ public class Health : MonoBehaviour
 
     #endregion
 
+    #region VARIABLE_PROPERTIES
+
+    public bool IsDead { get { return isDead; } }
+
+    #endregion
+
     #region UNITY_DEFAULT_METHODS
 
     void Start()
@@ -36,11 +42,6 @@ public class Health : MonoBehaviour
 
     #region CUSTOM_METHODS
 
-    public bool CheckIfDead()
-    {
-        return isDead;
-    }
-
     void CheckHealth()
     {
         if (health <= 0.0f)
@@ -49,7 +50,7 @@ public class Health : MonoBehaviour
         }
     }
 
-    public void Hit(float amount)
+    public void Hurt(float amount)
     {
         if (!isDead)
         {

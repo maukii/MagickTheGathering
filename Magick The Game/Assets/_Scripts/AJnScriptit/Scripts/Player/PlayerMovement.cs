@@ -132,7 +132,7 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-                health.Hit(other.GetComponent<TriggerHurt>().damage);
+                health.Hurt(other.GetComponent<TriggerHurt>().damage);
             }
         }
     }
