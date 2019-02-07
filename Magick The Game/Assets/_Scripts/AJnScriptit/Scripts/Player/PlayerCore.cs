@@ -1,6 +1,4 @@
-﻿//USAGE: Insert into an empty gameobject and fill out the variables.
-
-using UnityEngine;
+﻿using UnityEngine;
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(ThirdPersonCamera))]
@@ -55,6 +53,10 @@ public class PlayerCore : MonoBehaviour
     [SerializeField] private GameOverMenu cGameOverMenu = null;
     [SerializeField] private HurtFlash cHurtFlash       = null;
 
+    [Header("Model / Animations")]
+    [SerializeField] private GameObject playerModel     = null;
+    private bool isDead = false;
+
     #endregion
 
     #region VARIABLE_PROPERTIES
@@ -96,6 +98,8 @@ public class PlayerCore : MonoBehaviour
 
     void Awake()
     {
+        GlobalVariables.player = this;
+
         cHealth         = GetComponent<Health>();
         cTPCamera       = GetComponent<ThirdPersonCamera>();
         cPlayerInput    = GetComponent<PlayerInput>();
@@ -109,6 +113,11 @@ public class PlayerCore : MonoBehaviour
         {
             EnableControls(inputEnabled);
             inputEnabledTemp = inputEnabled;
+        }
+
+        if (isDead)
+        {
+            Camera.main.transform.LookAt(playerModel.transform);
         }
     }
 
@@ -165,6 +174,16 @@ public class PlayerCore : MonoBehaviour
         {
             EnableControls(false);
             cGameOverMenu.Activate();
+        }
+
+        if (playerModel != null)
+        {
+            isDead = true;
+            playerModel.GetComponent<PlayerModelRotator>().enabled = false;
+            playerModel.GetComponent<Rigidbody>().isKinematic = false;
+            playerModel.GetComponent<CapsuleCollider>().enabled = true;
+            playerModel.transform.SetParent(null);
+            playerModel.GetComponent<Rigidbody>().AddForce(playerModel.transform.forward + playerModel.transform.up * -2.0f, ForceMode.VelocityChange);
         }
     }
 

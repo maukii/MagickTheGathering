@@ -87,7 +87,7 @@ public class PlayerShoot : MonoBehaviour
         if (projectile != null)
         {
             Vector3 direction = -Vector3.Normalize(transform.position + charPositionOffset - hitPoint);
-            Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + Vector3.up * 1.0f, direction);
+            Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + charPositionOffset, direction);
         }
     }
 

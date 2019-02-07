@@ -3,7 +3,7 @@
 public class CameraWallChecker : MonoBehaviour
 {
     [SerializeField] private Transform cameraOriginalPos = null;
-    [SerializeField] private LayerMask physicsLayerMask;
+    [SerializeField] private LayerMask physicsLayerMask = 1;
 
     void Update()
     {

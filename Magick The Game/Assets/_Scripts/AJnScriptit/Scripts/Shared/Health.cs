@@ -28,6 +28,11 @@ public class Health : MonoBehaviour
             health = GetComponent<PlayerCore>().Health;
             iFrameTime = GetComponent<PlayerCore>().IFrames;
         }
+        else if (GetComponent<EnemyCore>() != null)
+        {
+            health = GetComponent<EnemyCore>().Health;
+            iFrameTime = GetComponent<EnemyCore>().IFrames;
+        }
     }
 
     void Update()
@@ -59,11 +64,9 @@ public class Health : MonoBehaviour
                 iFrameTimeTemp = iFrameTime;
                 health -= amount;
 
-                if (isPlayer)
-                {
-                    GetComponent<PlayerCore>().Hurt();
-                }
-                
+                if (isPlayer)   { GetComponent<PlayerCore>().Hurt(); }
+                else            { GetComponent<EnemyCore>().Hurt(); }
+
                 CheckHealth();
             }
         }
@@ -82,10 +85,8 @@ public class Health : MonoBehaviour
     {
         if (!isDead)
         {
-            if (isPlayer)
-            {
-                GetComponent<PlayerCore>().Hurt();
-            }
+            if (isPlayer)   { GetComponent<PlayerCore>().Hurt(); }
+            else            { GetComponent<EnemyCore>().Hurt(); }
             Dead();
         }
     }
@@ -95,10 +96,8 @@ public class Health : MonoBehaviour
         health = 0.0f;
         isDead = true;
 
-        if (isPlayer)
-        {
-            GetComponent<PlayerCore>().Dead();
-        }
+        if (isPlayer)   { GetComponent<PlayerCore>().Dead(); }
+        else            { GetComponent<EnemyCore>().Dead(); }
     }
 
     #endregion

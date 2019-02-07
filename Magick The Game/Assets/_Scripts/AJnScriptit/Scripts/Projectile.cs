@@ -4,15 +4,15 @@ public class Projectile : MonoBehaviour
 {
     #region VARIABLES
 
-    [SerializeField] private float speed = 1.0f;
-    [SerializeField] private float damage = 50.0f;
-    [SerializeField] private float aliveTime = 10.0f;
-    [SerializeField] private LayerMask physicsLayerMask;
-    [SerializeField] private GameObject explosion = null;
+    [SerializeField] private float speed                = 1.0f;
+    [SerializeField] private float damage               = 50.0f;
+    [SerializeField] private float aliveTime            = 10.0f;
+    [SerializeField] private LayerMask physicsLayerMask = 1;
+    [SerializeField] private GameObject explosion       = null;
 
-    private bool hitSomething = false;
-    private GameObject hitTarget = null;
-    private Vector3 direction = Vector3.zero;
+    private bool hitSomething                           = false;
+    private GameObject hitTarget                        = null;
+    private Vector3 direction                           = Vector3.zero;
 
     #endregion
 
