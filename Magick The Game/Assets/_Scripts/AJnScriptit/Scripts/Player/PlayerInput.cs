@@ -5,6 +5,7 @@ public class PlayerInput : MonoBehaviour
     #region VARIABLES
 
     private bool inputEnabled               = false;
+    private bool shotFired                  = false;
     private PlayerMovement playerMovement   = null;
     private ThirdPersonCamera tpCamera      = null;
     private PlayerShoot shoot               = null;
@@ -29,9 +30,18 @@ public class PlayerInput : MonoBehaviour
             playerMovement.SetInput("Dash", Input.GetButtonDown("Fire3"));
             tpCamera.LookAround(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
 
-            if (Input.GetButtonDown("Fire1"))
+            if (Input.GetButtonDown("Fire1") || Input.GetAxisRaw("Fire1") != 0.0f)
             {
-                shoot.ShootProjectile();
+                //Don't allow repeated input from controller axis
+                if (!shotFired)
+                {
+                    shoot.ShootProjectile();
+                    shotFired = true;
+                }
+            }
+            else
+            {
+                shotFired = false;
             }
 
             if (Input.GetButtonDown("Fire2"))
@@ -40,7 +50,7 @@ public class PlayerInput : MonoBehaviour
             }
         }
 
-        if (Input.GetButtonDown("Cancel"))
+        if (Input.GetButtonDown("Escape"))
         {
             GetComponent<PlayerCore>().PauseGame();
         }

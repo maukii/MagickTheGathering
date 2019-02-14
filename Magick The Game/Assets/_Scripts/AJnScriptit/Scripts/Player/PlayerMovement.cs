@@ -162,6 +162,12 @@ public class PlayerMovement : MonoBehaviour
 
     void Move(float x, float y, bool jump, bool dash)
     {
+        float moveSpeed = Mathf.Abs(x) + Mathf.Abs(y);
+        if (moveSpeed >= 1.0f)
+        {
+            moveSpeed = 1.0f;
+        }
+
         bool isGrounded = charController.isGrounded;
         if ((charController.collisionFlags & CollisionFlags.Below) == 0)
         {
@@ -188,8 +194,8 @@ public class PlayerMovement : MonoBehaviour
             if (dashDurationTemp <= 0.0f)
             {
                 tempVector += isGrounded ?
-                    moveDirection * acceleration * Time.deltaTime
-                    : moveDirection * airAcceleration * Time.deltaTime;
+                    moveDirection * moveSpeed * acceleration * Time.deltaTime
+                    : moveDirection * moveSpeed * airAcceleration * Time.deltaTime;
             }
 
             //Calculate friction
