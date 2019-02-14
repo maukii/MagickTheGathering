@@ -43,6 +43,11 @@ public class TrapGeneric : MonoBehaviour
                 anim.Play("Kill");
             }
 
+            if (gameObject.tag == "SpikeTrap")
+            {
+                anim.Play("Kill");
+            }
+
             if (gameObject.tag == "TrapDoor")
             {
                 anim.Play("Kill");
