@@ -1,44 +1,34 @@
 ﻿using UnityEngine;
 
+[RequireComponent(typeof(PlayerCore))]
 public class PlayerMovement : MonoBehaviour
 {
     #region VARIABLES
-
-    //Variables from PlayerCore
-    private PlayerCore playerCore                   = null;
-    private ThirdPersonCamera tpCamera              = null;
-    private Health health                           = null;
-
-    private float acceleration                      = 0.0f;
-    private float airAcceleration                   = 0.0f;
-    private float friction                          = 0.0f;
-    private float airFriction                       = 0.0f;
-    private float gravity                           = 0.0f;
-    private float smoothStepDown                    = 0.0f;
-    private float jumpForce                         = 0.0f;
-    private float jumpGraceTime                     = 0.0f;
-    private float dashSpeed                         = 0.0f;
-    private float dashJumpForce                     = 0.0f;
-    private float dashDuration                      = 0.0f;
-    private float dashCooldown                      = 0.0f;
-    private LayerMask physicsLayerMask              = 1;
     
-    //Input
-    [HideInInspector] public bool enableMovement    = true;
-    private bool inputJump                          = false;
-    private bool inputDash                          = false;
-    private Vector2 inputMove                       = Vector2.zero;
-    private Vector3 lookDirection                   = Vector3.forward;
+    [SerializeField] private float acceleration     = 100.0f;
+    [SerializeField] private float airAcceleration  = 20.0f;
+    [SerializeField] private float friction         = 0.1f;
+    [SerializeField] private float airFriction      = 0.02f;
+    [SerializeField] private float gravity          = -30.0f;
+    [SerializeField] private float smoothStepDown   = 0.5f;
+    [SerializeField] private float jumpForce        = 15.0f;
+    [SerializeField] private float jumpGraceTime    = 0.1f;
+    [SerializeField] private float dashSpeed        = 20.0f;
+    [SerializeField] private float dashJumpForce    = 8.0f;
+    [SerializeField] private float dashDuration     = 0.2f;
+    [SerializeField] private float dashCooldown     = 1.0f;
+
+    private ThirdPersonCamera cTPCamera             = null;
+    private CharacterController cCharacter          = null;
+    private LayerMask physicsLayerMask              = 1;
 
     //Temporary values
     private Vector3 moveDirection                   = Vector3.zero;
     private Vector3 moveVector                      = Vector3.zero;
     private Vector3 slopeNormal                     = Vector3.zero;
-    private float jumpGraceTimeTemp                 = 0.0f;
-    private float dashDurationTemp                  = 0.0f;
-    private float dashCooldownTemp                  = 0.0f;
-    
-    private CharacterController charController      = null;
+    private float jgtTimer                          = 0.0f;
+    private float dDurationTimer                    = 0.0f;
+    private float dCooldownTimer                    = 0.0f;
     private Transform movingPlatform                = null;
     private Vector3 movingPlatformPrevPosition      = Vector3.zero;
     private Vector3 movingPlatformVelocity          = Vector3.zero;
@@ -49,43 +39,15 @@ public class PlayerMovement : MonoBehaviour
 
     void Start()
     {
-        playerCore          = GetComponent<PlayerCore>();
-        charController      = GetComponent<CharacterController>();
-        tpCamera            = playerCore.TpcComponent;
-        health              = playerCore.HealthComponent;
-
-        acceleration        = playerCore.Acceleration;
-        airAcceleration     = playerCore.AirAcceleration;
-        friction            = playerCore.Friction;
-        airFriction         = playerCore.AirFriction;
-        gravity             = playerCore.Gravity;
-        smoothStepDown      = playerCore.SmoothStepDown;
-        jumpForce           = playerCore.JumpForce;
-        jumpGraceTime       = playerCore.JumpGraceTime;
-        dashSpeed           = playerCore.DashSpeed;
-        dashJumpForce       = playerCore.DashJumpForce;
-        dashDuration        = playerCore.DashDuration;
-        dashCooldown        = playerCore.DashCooldown;
-        physicsLayerMask    = playerCore.PhysicsLayerMask;
-    }
-
-    void Update()
-    {
-        lookDirection = tpCamera.LookDirection;
-
-        if (enableMovement)
-        {
-            CalculateMovingPlatform();
-            Move(inputMove.x, inputMove.y, inputJump, inputDash);
-            CalculateCooldowns();
-        }
+        cCharacter      = GetComponent<PlayerCore>().cCharacter;
+        cTPCamera       = GetComponent<PlayerCore>().cTPCamera;
     }
 
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
         RaycastHit rcHit;
         if (Physics.Raycast(
-            transform.position + Vector3.up * (charController.height / 2),
+            transform.position + Vector3.up * (cCharacter.height / 2),
             Vector3.down,
             out rcHit,
             Mathf.Infinity,
@@ -117,59 +79,30 @@ public class PlayerMovement : MonoBehaviour
         Vector2 temp = Vector2.Perpendicular(new Vector2(hit.normal.x, hit.normal.z));
         Vector3 temp2 = Vector3.Normalize(Vector3.Cross(hit.normal, new Vector3(temp.x, 0.0f, temp.y)));
         //Slope normal vector
-        Debug.DrawLine(hit.point, hit.point + hit.normal * 0.2f, (Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal)) < charController.slopeLimit ? Color.green : Color.red), 0.5f);
+        Debug.DrawLine(hit.point, hit.point + hit.normal * 0.2f, (Mathf.Abs(Vector3.Angle(Vector3.up, hit.normal)) < cCharacter.slopeLimit ? Color.green : Color.red), 0.5f);
         //Vector pointing down the slope
         Debug.DrawLine(hit.point, hit.point + temp2 * 0.2f, Color.blue, 0.5f);
-    }
-
-    void OnTriggerStay(Collider other)
-    {
-        if (other.tag == "TriggerKill")
-        {
-            if (other.GetComponent<TriggerHurt>().killInstantly)
-            {
-                health.Slay();
-            }
-            else
-            {
-                health.Hurt(other.GetComponent<TriggerHurt>().damage);
-            }
-        }
     }
 
     #endregion
 
     #region CUSTOM_METHODS
 
-    public void SetInput(string ability, bool b)
+    public void Move(float x, float y, bool jump, bool dash)
     {
-        switch (ability)
-        {
-            case "Jump": inputJump = b; break;
-            case "Dash": inputDash = b; break;
-            default: break;
-        }
-    }
+        CalculateMovingPlatform();
+        CalculateCooldowns();
 
-    public void SetInput(string ability, Vector2 vector2)
-    {
-        switch (ability)
-        {
-            case "Move": inputMove = vector2; break;
-            default: break;
-        }
-    }
+        Vector3 lookDirection = cTPCamera.lookDirection;
 
-    void Move(float x, float y, bool jump, bool dash)
-    {
         float moveSpeed = Mathf.Abs(x) + Mathf.Abs(y);
         if (moveSpeed >= 1.0f)
         {
             moveSpeed = 1.0f;
         }
 
-        bool isGrounded = charController.isGrounded;
-        if ((charController.collisionFlags & CollisionFlags.Below) == 0)
+        bool isGrounded = cCharacter.isGrounded;
+        if ((cCharacter.collisionFlags & CollisionFlags.Below) == 0)
         {
             //slopeNormal = Vector3.up;
             movingPlatform = null;
@@ -185,13 +118,13 @@ public class PlayerMovement : MonoBehaviour
         Vector3 slopeTemp2 = Vector3.Normalize(Vector3.Cross(slopeNormal, new Vector3(slopeTemp.x, 0.0f, slopeTemp.y)));
         
         //Allow normal movement if not on a slope
-        if (Vector3.Angle(Vector3.up, slopeNormal) < charController.slopeLimit)
+        if (Vector3.Angle(Vector3.up, slopeNormal) < cCharacter.slopeLimit)
         {
             //Calculate movement on XZ plane
             Vector3 tempVector = moveVector;
             tempVector.y = 0.0f;
 
-            if (dashDurationTemp <= 0.0f)
+            if (dDurationTimer <= 0.0f)
             {
                 tempVector += isGrounded ?
                     moveDirection * moveSpeed * acceleration * Time.deltaTime
@@ -199,7 +132,7 @@ public class PlayerMovement : MonoBehaviour
             }
 
             //Calculate friction
-            if (dashDurationTemp <= 0.0f)
+            if (dDurationTimer <= 0.0f)
             {
                 tempVector -= isGrounded ?
                     tempVector * friction
@@ -210,21 +143,21 @@ public class PlayerMovement : MonoBehaviour
             if (isGrounded)
             {
                 Debug.DrawLine(
-                    transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * charController.radius,
-                    transform.position + Vector3.down * (0.01f + smoothStepDown) + Vector3.Normalize(tempVector) * charController.radius,
+                    transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * cCharacter.radius,
+                    transform.position + Vector3.down * (0.01f + smoothStepDown) + Vector3.Normalize(tempVector) * cCharacter.radius,
                     Color.cyan
                 );
 
                 RaycastHit hit;
                 if (Physics.Raycast(
-                    transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * charController.radius,
+                    transform.position + Vector3.up * 0.01f + Vector3.Normalize(tempVector) * cCharacter.radius,
                     Vector3.down,
                     out hit,
-                    charController.skinWidth + smoothStepDown,
+                    cCharacter.skinWidth + smoothStepDown,
                     physicsLayerMask
                     ))
                 {
-                    tempVector.y = -charController.slopeLimit;
+                    tempVector.y = -cCharacter.slopeLimit;
                 }
             }
             
@@ -233,10 +166,10 @@ public class PlayerMovement : MonoBehaviour
                 : moveVector.y + gravity * Time.deltaTime;
 
             //Dashing
-            if (dash && dashCooldownTemp <= 0.0f && dashDurationTemp <= 0.0f)
+            if (dash && dCooldownTimer <= 0.0f && dDurationTimer <= 0.0f)
             {
-                dashDurationTemp = dashDuration;
-                dashCooldownTemp = dashCooldown;
+                dDurationTimer = dashDuration;
+                dCooldownTimer = dashCooldown;
                 tempVector = moveDirection * dashSpeed;
                 tempVector.y = dashJumpForce;
             }
@@ -244,7 +177,7 @@ public class PlayerMovement : MonoBehaviour
             moveVector = tempVector;
 
             //Jumping
-            if (jump && jumpGraceTimeTemp > 0.0f)
+            if (jump && jgtTimer > 0.0f)
             {
                 moveVector.y = jumpForce;
             }
@@ -271,7 +204,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         //Stop vertical movement if hitting a ceiling
-        if ((charController.collisionFlags & CollisionFlags.Above) != 0 && moveVector.y > 0.0f)
+        if ((cCharacter.collisionFlags & CollisionFlags.Above) != 0 && moveVector.y > 0.0f)
         {
             moveVector.y = 0.0f;
         }
@@ -283,7 +216,7 @@ public class PlayerMovement : MonoBehaviour
         Debug.DrawLine(transform.position + Vector3.up, transform.position + Vector3.up + moveDirection, Color.cyan); //Desired movement unit vector
         Debug.DrawLine(transform.position + Vector3.up, transform.position + Vector3.up + moveVector.normalized, Color.magenta); //Desired movement unit vector
 
-        charController.Move(moveVector * Time.deltaTime + movingPlatformVelocity);
+        cCharacter.Move(moveVector * Time.deltaTime + movingPlatformVelocity);
     }
 
     void CalculateMovingPlatform()
@@ -306,25 +239,25 @@ public class PlayerMovement : MonoBehaviour
 
     void CalculateCooldowns()
     {
-        if (jumpGraceTimeTemp > 0.0f)
+        if (jgtTimer > 0.0f)
         {
-            jumpGraceTimeTemp -= Time.deltaTime;
+            jgtTimer -= Time.deltaTime;
         }
 
-        if (charController.isGrounded)
+        if (cCharacter.isGrounded)
         {
-            jumpGraceTimeTemp = jumpGraceTime;
+            jgtTimer = jumpGraceTime;
         }
 
-        if (dashDurationTemp > 0.0f)
+        if (dDurationTimer > 0.0f)
         {
-            dashDurationTemp -= Time.deltaTime;
+            dDurationTimer -= Time.deltaTime;
         }
         else
         {
-            if (dashCooldownTemp > 0.0f)
+            if (dCooldownTimer > 0.0f)
             {
-                dashCooldownTemp -= Time.deltaTime;
+                dCooldownTimer -= Time.deltaTime;
             }
         }
     }

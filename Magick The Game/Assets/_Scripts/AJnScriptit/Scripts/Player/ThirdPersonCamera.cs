@@ -3,18 +3,15 @@
 public class ThirdPersonCamera : MonoBehaviour
 {
     #region VARIABLES
+    
+    public bool invertY                                 = false;
+    public Vector2 sensitivity                          = new Vector2(1.0f, 1.0f);
 
-    private bool invertY            = false;
-    private Vector2 sensitivity     = new Vector2(1.0f, 1.0f);
-    private Vector2 minMaxPitch     = new Vector2(-85.0f, 85.0f);
-    private Transform cameraPivot   = null;
-    private Vector3 lookDirection   = Vector3.zero;
+    public Vector3 lookDirection { get; private set; }  = Vector3.zero;
 
-    #endregion
+    [SerializeField] private Transform cameraPivot      = null;
 
-    #region VARIABLE_PROPERTIES
-
-    public Vector3 LookDirection { get { return lookDirection; } }
+    private Vector2 minMaxPitch                         = new Vector2(-85.0f, 85.0f);
 
     #endregion
 
@@ -22,22 +19,9 @@ public class ThirdPersonCamera : MonoBehaviour
 
     void Start()
     {
-        if (GetComponent<PlayerCore>() != null)
-        {
-            invertY = GetComponent<PlayerCore>().InvertVertical;
-            sensitivity = GetComponent<PlayerCore>().Sensitivity;
-            cameraPivot = GetComponent<PlayerCore>().CameraPivot;
-        }
-        else
-        {
-            Debug.LogError(this + " couldn't find player core!");
-            this.enabled = false;
-        }
-
         if (cameraPivot == null)
         {
             Debug.LogWarning(this + " is missing a camera pivot!");
-            this.enabled = false;
         }
     }
 
@@ -45,23 +29,38 @@ public class ThirdPersonCamera : MonoBehaviour
 
     #region CUSTOM_METHODS
 
-    public void LookAround(float x, float y)
+    public void Look(float x, float y)
     {
-        lookDirection.x += y * sensitivity.x * (invertY ? 1.0f : -1.0f);
-        lookDirection.y += x * sensitivity.y;
+        if (cameraPivot != null)
+        {
+            lookDirection += new Vector3(
+            y * sensitivity.x * (invertY ? 1.0f : -1.0f),
+            x * sensitivity.y,
+            0.0f
+            );
 
-        if (lookDirection.x < minMaxPitch.x) { lookDirection.x = minMaxPitch.x; }
-        if (lookDirection.x > minMaxPitch.y) { lookDirection.x = minMaxPitch.y; }
+            if (lookDirection.x < minMaxPitch.x)
+            {
+                lookDirection = new Vector3(minMaxPitch.x, lookDirection.y, lookDirection.z);
+            }
+            if (lookDirection.x > minMaxPitch.y)
+            {
+                lookDirection = new Vector3(minMaxPitch.y, lookDirection.y, lookDirection.z);
+            }
 
-        cameraPivot.localRotation = Quaternion.Euler(lookDirection);
+            cameraPivot.localRotation = Quaternion.Euler(lookDirection);
+        }
     }
 
     public void SwitchSide()
     {
-        Transform camera = cameraPivot.GetChild(0);
-        Vector3 camPos = camera.localPosition;
-        camPos.x *= -1;
-        camera.localPosition = camPos;
+        if (cameraPivot != null)
+        {
+            Transform camera = cameraPivot.GetChild(0);
+            Vector3 camPos = camera.localPosition;
+            camPos.x *= -1;
+            camera.localPosition = camPos;
+        }
     }
 
     #endregion

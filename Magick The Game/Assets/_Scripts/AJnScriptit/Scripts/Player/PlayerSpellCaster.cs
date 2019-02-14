@@ -1,17 +1,20 @@
 ﻿using UnityEngine;
 
-public class PlayerShoot : MonoBehaviour
+[RequireComponent(typeof(PlayerCore))]
+public class PlayerSpellCaster : MonoBehaviour
 {
     #region VARIABLES
 
     public GameObject projectile                        = null;
+
     [SerializeField] private GameObject reticleBlocked  = null;
     [SerializeField] private LineRenderer line          = null;
 
+    private bool bEnabled                               = true;
     private LayerMask physicsLayerMask                  = 1;
     private new Transform camera                        = null;
     private Vector3 charPositionOffset                  = Vector3.up * 1.0f;
-    private Vector3 hitPoint                            = Vector3.zero;
+    private Vector3 castPoint                           = Vector3.zero;
 
     #endregion
 
@@ -19,13 +22,13 @@ public class PlayerShoot : MonoBehaviour
 
     void Start()
     {
-        physicsLayerMask    = GetComponent<PlayerCore>().PhysicsLayerMask;
+        physicsLayerMask    = GetComponent<PlayerCore>().physicsLayerMask;
         camera              = Camera.main.transform;
     }
 
     void Update()
     {
-        if (camera != null)
+        if (bEnabled && camera != null)
         {
             RaycastHit hitFromCamera;
             RaycastHit hitFromPlayer;
@@ -51,7 +54,7 @@ public class PlayerShoot : MonoBehaviour
                 physicsLayerMask
                 ))
                 {
-                    hitPoint = hitFromPlayer.point;
+                    castPoint = hitFromPlayer.point;
                     if (AlmostEqual(hitFromPlayer.point, hitFromCamera.point, 0.05f))
                     {
                         reticleBlocked.SetActive(false);
@@ -70,7 +73,7 @@ public class PlayerShoot : MonoBehaviour
                 }
                 else
                 {
-                    hitPoint = hitFromCamera.point;
+                    castPoint = hitFromCamera.point;
                     reticleBlocked.SetActive(false);
                     line.enabled = false;
                 }
@@ -78,15 +81,22 @@ public class PlayerShoot : MonoBehaviour
         }
     }
 
+    public void CastBeamActive(bool b)
+    {
+        bEnabled = b;
+        reticleBlocked.SetActive(b);
+        line.enabled = b;
+    }
+
     #endregion
 
     #region CUSTOM_METHODS
 
-    public void ShootProjectile()
+    public void CastSpell()
     {
         if (projectile != null)
         {
-            Vector3 direction = -Vector3.Normalize(transform.position + charPositionOffset - hitPoint);
+            Vector3 direction = -Vector3.Normalize(transform.position + charPositionOffset - castPoint);
             Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + charPositionOffset, direction);
         }
     }

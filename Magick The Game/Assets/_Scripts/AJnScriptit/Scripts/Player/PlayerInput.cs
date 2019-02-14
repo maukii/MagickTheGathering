@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+[RequireComponent(typeof(PlayerCore))]
 public class PlayerInput : MonoBehaviour
 {
     #region VARIABLES
@@ -8,7 +9,7 @@ public class PlayerInput : MonoBehaviour
     private bool shotFired                  = false;
     private PlayerMovement playerMovement   = null;
     private ThirdPersonCamera tpCamera      = null;
-    private PlayerShoot shoot               = null;
+    private PlayerSpellCaster shoot               = null;
 
     #endregion
 
@@ -18,24 +19,22 @@ public class PlayerInput : MonoBehaviour
     {
         playerMovement  = GetComponent<PlayerMovement>();
         tpCamera        = GetComponent<ThirdPersonCamera>();
-        shoot           = GetComponent<PlayerShoot>();
+        shoot           = GetComponent<PlayerSpellCaster>();
     }
 
     void Update()
     {
         if (inputEnabled)
         {
-            playerMovement.SetInput("Move", new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")));
-            playerMovement.SetInput("Jump", Input.GetButtonDown("Jump"));
-            playerMovement.SetInput("Dash", Input.GetButtonDown("Fire3"));
-            tpCamera.LookAround(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-
+            tpCamera.Look(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+            playerMovement.Move(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"), Input.GetButtonDown("Jump"), Input.GetButtonDown("Fire3"));
+            
             if (Input.GetButtonDown("Fire1") || Input.GetAxisRaw("Fire1") != 0.0f)
             {
                 //Don't allow repeated input from controller axis
                 if (!shotFired)
                 {
-                    shoot.ShootProjectile();
+                    shoot.CastSpell();
                     shotFired = true;
                 }
             }
