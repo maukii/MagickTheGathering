@@ -5,33 +5,37 @@ public class PlayerMovement : MonoBehaviour
 {
     #region VARIABLES
     
-    [SerializeField] private float acceleration     = 100.0f;
-    [SerializeField] private float airAcceleration  = 20.0f;
-    [SerializeField] private float friction         = 0.1f;
-    [SerializeField] private float airFriction      = 0.02f;
-    [SerializeField] private float gravity          = -30.0f;
-    [SerializeField] private float smoothStepDown   = 0.5f;
-    [SerializeField] private float jumpForce        = 15.0f;
-    [SerializeField] private float jumpGraceTime    = 0.1f;
-    [SerializeField] private float dashSpeed        = 20.0f;
-    [SerializeField] private float dashJumpForce    = 8.0f;
-    [SerializeField] private float dashDuration     = 0.2f;
-    [SerializeField] private float dashCooldown     = 1.0f;
+    [SerializeField] private float acceleration         = 100.0f;
+    [SerializeField] private float airAcceleration      = 20.0f;
+    [SerializeField] private float friction             = 0.1f;
+    [SerializeField] private float airFriction          = 0.02f;
+    [SerializeField] private float gravity              = -30.0f;
+    [SerializeField] private float smoothStepDown       = 0.5f;
+    [SerializeField] private float jumpForce            = 15.0f;
+    [SerializeField] private float jumpGraceTime        = 0.1f;
+    [SerializeField] private float dashSpeed            = 20.0f;
+    [SerializeField] private float dashJumpForce        = 8.0f;
+    [SerializeField] private float dashDuration         = 0.2f;
+    [SerializeField] private float dashCooldown         = 1.0f;
+    [SerializeField] private float gravityWallSliding   = -10.0f;
+    [SerializeField] private float wallSlidingTime      = 2.0f;
 
-    private ThirdPersonCamera cTPCamera             = null;
-    private CharacterController cCharacter          = null;
-    private LayerMask physicsLayerMask              = 1;
+    private ThirdPersonCamera cTPCamera                 = null;
+    private CharacterController cCharacter              = null;
+    private LayerMask physicsLayerMask                  = 1;
 
     //Temporary values
-    private Vector3 moveDirection                   = Vector3.zero;
-    private Vector3 moveVector                      = Vector3.zero;
-    private Vector3 slopeNormal                     = Vector3.zero;
-    private float jgtTimer                          = 0.0f;
-    private float dDurationTimer                    = 0.0f;
-    private float dCooldownTimer                    = 0.0f;
-    private Transform movingPlatform                = null;
-    private Vector3 movingPlatformPrevPosition      = Vector3.zero;
-    private Vector3 movingPlatformVelocity          = Vector3.zero;
+    private bool bIsWallSliding                         = false;
+    private Vector3 moveDirection                       = Vector3.zero;
+    private Vector3 moveVector                          = Vector3.zero;
+    private Vector3 slopeNormal                         = Vector3.zero;
+    private float jgtTimer                              = 0.0f;
+    private float dDurationTimer                        = 0.0f;
+    private float dCooldownTimer                        = 0.0f;
+    private float wstTimer                              = 0.0f;
+    private Transform movingPlatform                    = null;
+    private Vector3 movingPlatformPrevPosition          = Vector3.zero;
+    private Vector3 movingPlatformVelocity              = Vector3.zero;
 
     #endregion
 
@@ -106,6 +110,20 @@ public class PlayerMovement : MonoBehaviour
         {
             //slopeNormal = Vector3.up;
             movingPlatform = null;
+
+            if ((cCharacter.collisionFlags & CollisionFlags.Sides) > 0)
+            {
+                bIsWallSliding = true;
+            }
+            else
+            {
+                bIsWallSliding = false;
+            }
+        }
+        else
+        {
+            bIsWallSliding = false;
+            wstTimer = wallSlidingTime;
         }
 
         //Get the desired movement unit vector based on where the player is looking at
@@ -160,10 +178,17 @@ public class PlayerMovement : MonoBehaviour
                     tempVector.y = -cCharacter.slopeLimit;
                 }
             }
-            
+
+            float tempGravity = gravity;
+            if (bIsWallSliding && moveVector.y < 0.0f && wstTimer > 0.0f)
+            {
+                tempGravity = gravityWallSliding;
+                wstTimer -= Time.deltaTime;
+            }
+
             tempVector.y = isGrounded ?
                 tempVector.y + gravity * Time.deltaTime
-                : moveVector.y + gravity * Time.deltaTime;
+                : moveVector.y + tempGravity * Time.deltaTime;
 
             //Dashing
             if (dash && dCooldownTimer <= 0.0f && dDurationTimer <= 0.0f)
@@ -175,11 +200,21 @@ public class PlayerMovement : MonoBehaviour
             }
 
             moveVector = tempVector;
-
-            //Jumping
-            if (jump && jgtTimer > 0.0f)
+            
+            if (jump)
             {
-                moveVector.y = jumpForce;
+                //Jumping (normal)
+                if (jgtTimer > 0.0f)
+                {
+                    moveVector.y = jumpForce;
+                }
+
+                //Jumping (wallsliding)
+                if (bIsWallSliding)
+                {
+                    moveVector.y = jumpForce;
+                    wstTimer = 0.0f;
+                }
             }
         }
         //Do something else when on a steep slope
