@@ -1,16 +1,18 @@
 ﻿using UnityEngine;
 
 [RequireComponent(typeof(PlayerCore))]
+[RequireComponent(typeof(Mana))]
 public class PlayerSpellCaster : MonoBehaviour
 {
     #region VARIABLES
 
     public GameObject projectile                        = null;
 
-    [SerializeField] private GameObject reticleBlocked  = null;
-    [SerializeField] private LineRenderer line          = null;
+    [SerializeField] private GameObject blockedReticle  = null;
+    [SerializeField] private LineRenderer blockedLine   = null;
 
-    private bool bEnabled                               = true;
+    private bool bIsEnabled                             = true;
+    private Mana cMana                                  = null;
     private LayerMask physicsLayerMask                  = 1;
     private new Transform camera                        = null;
     private Vector3 charPositionOffset                  = Vector3.up * 1.0f;
@@ -24,11 +26,12 @@ public class PlayerSpellCaster : MonoBehaviour
     {
         physicsLayerMask    = GetComponent<PlayerCore>().physicsLayerMask;
         camera              = Camera.main.transform;
+        cMana               = GetComponent<Mana>();
     }
 
     void Update()
     {
-        if (bEnabled && camera != null)
+        if (bIsEnabled && camera != null)
         {
             RaycastHit hitFromCamera;
             RaycastHit hitFromPlayer;
@@ -44,7 +47,7 @@ public class PlayerSpellCaster : MonoBehaviour
                 hitFromCamera.point = transform.position + charPositionOffset + (camera.position + camera.forward * 5000.0f);
             }
 
-            if (reticleBlocked != null && line != null)
+            if (blockedReticle != null && blockedLine != null)
             {
                 if (Physics.Raycast(
                 transform.position + charPositionOffset,
@@ -57,25 +60,25 @@ public class PlayerSpellCaster : MonoBehaviour
                     castPoint = hitFromPlayer.point;
                     if (AlmostEqual(hitFromPlayer.point, hitFromCamera.point, 0.05f))
                     {
-                        reticleBlocked.SetActive(false);
-                        line.enabled = false;
+                        blockedReticle.SetActive(false);
+                        blockedLine.enabled = false;
                     }
                     else
                     {
-                        reticleBlocked.SetActive(true);
-                        reticleBlocked.transform.position = hitFromPlayer.point + hitFromPlayer.normal * 0.01f;
-                        reticleBlocked.transform.rotation = Quaternion.LookRotation(hitFromPlayer.normal, Vector3.up);
+                        blockedReticle.SetActive(true);
+                        blockedReticle.transform.position = hitFromPlayer.point + hitFromPlayer.normal * 0.01f;
+                        blockedReticle.transform.rotation = Quaternion.LookRotation(hitFromPlayer.normal, Vector3.up);
 
-                        line.enabled = true;
-                        line.SetPosition(0, transform.position + charPositionOffset);
-                        line.SetPosition(1, hitFromPlayer.point);
+                        blockedLine.enabled = true;
+                        blockedLine.SetPosition(0, transform.position + charPositionOffset);
+                        blockedLine.SetPosition(1, hitFromPlayer.point);
                     }
                 }
                 else
                 {
                     castPoint = hitFromCamera.point;
-                    reticleBlocked.SetActive(false);
-                    line.enabled = false;
+                    blockedReticle.SetActive(false);
+                    blockedLine.enabled = false;
                 }
             }
         }
@@ -83,9 +86,9 @@ public class PlayerSpellCaster : MonoBehaviour
 
     public void CastBeamActive(bool b)
     {
-        bEnabled = b;
-        reticleBlocked.SetActive(b);
-        line.enabled = b;
+        bIsEnabled = b;
+        blockedReticle.SetActive(b);
+        blockedLine.enabled = b;
     }
 
     #endregion
@@ -96,8 +99,13 @@ public class PlayerSpellCaster : MonoBehaviour
     {
         if (projectile != null)
         {
-            Vector3 direction = -Vector3.Normalize(transform.position + charPositionOffset - castPoint);
-            Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + charPositionOffset, direction);
+            if (projectile.GetComponent<Projectile>().GetManaCost() < cMana.mana)
+            {
+                Vector3 direction = -Vector3.Normalize(transform.position + charPositionOffset - castPoint);
+                Projectile spell = Instantiate(projectile).GetComponent<Projectile>();
+                spell.Initialize(transform.position + charPositionOffset, direction);
+                cMana.UseMana(spell.GetManaCost());
+            }
         }
     }
 

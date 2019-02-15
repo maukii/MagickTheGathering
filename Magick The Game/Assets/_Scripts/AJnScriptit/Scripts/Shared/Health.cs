@@ -6,8 +6,10 @@ public class Health : MonoBehaviour
 
     public bool bIsDead { get; private set; }   = false;
 
-    [SerializeField] private float health       = 100.0f;
+    [SerializeField] private float maxHealth       = 100.0f;
     [SerializeField] private float iFrameTime   = 0.5f;
+
+    public float health { get; private set; } = 0.0f;
 
     private bool bIsPlayer                       = false;
     private float iftTimer                      = 0.0f;
@@ -18,6 +20,7 @@ public class Health : MonoBehaviour
 
     void Start()
     {
+        health = maxHealth;
         if (GetComponent<PlayerCore>() != null)
         {
             bIsPlayer = true;
@@ -48,6 +51,7 @@ public class Health : MonoBehaviour
                 if (bIsPlayer)
                 {
                     GetComponent<PlayerCore>().OnHurt();
+                    GetComponent<PlayerCore>().GetHUD().SetHealth(health, maxHealth);
                 }
                 else
                 {
@@ -67,6 +71,16 @@ public class Health : MonoBehaviour
         if (!bIsDead)
         {
             health += Mathf.Abs(amount);
+
+            if (health > maxHealth)
+            {
+                health = maxHealth;
+            }
+
+            if (bIsPlayer)
+            {
+                GetComponent<PlayerCore>().GetHUD().SetHealth(health, maxHealth);
+            }
         }
     }
 

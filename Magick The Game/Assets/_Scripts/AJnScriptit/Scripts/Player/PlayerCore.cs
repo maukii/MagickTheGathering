@@ -9,10 +9,7 @@ public class PlayerCore : MonoBehaviour
 {
     #region VARIABLES
 
-    [SerializeField] private GameObject crosshair               = null;
-    [SerializeField] private PauseMenu cPauseMenu               = null;
-    [SerializeField] private GameOverMenu cGameOverMenu         = null;
-    [SerializeField] private HurtFlash cHurtFlash               = null;
+    [SerializeField] private HUDManager canvasManager           = null;
     [SerializeField] private GameObject playerModel             = null;
 
     public ThirdPersonCamera cTPCamera { get; private set; }    = null;
@@ -21,10 +18,10 @@ public class PlayerCore : MonoBehaviour
 
     private bool bInputEnabled                                  = true;
     private bool bIsDead                                        = false;
-    private bool shotFired = false;
+    private bool bShotFired                                     = false;
     private Health cHealth                                      = null;
     private PlayerMovement cMovement                            = null;
-    private PlayerSpellCaster cSpellCaster                            = null;
+    private PlayerSpellCaster cSpellCaster                      = null;
 
     #endregion
 
@@ -57,15 +54,15 @@ public class PlayerCore : MonoBehaviour
                 if (Input.GetButtonDown("Fire1") || Input.GetAxisRaw("Fire1") != 0.0f)
                 {
                     //Don't allow repeated input from controller axis
-                    if (!shotFired)
+                    if (!bShotFired)
                     {
                         cSpellCaster.CastSpell();
-                        shotFired = true;
+                        bShotFired = true;
                     }
                 }
                 else
                 {
-                    shotFired = false;
+                    bShotFired = false;
                 }
 
                 if (Input.GetButtonDown("Fire2"))
@@ -76,7 +73,7 @@ public class PlayerCore : MonoBehaviour
 
             if (Input.GetButtonDown("Escape"))
             {
-                GetComponent<PlayerCore>().PauseGame();
+                EnableControls(!canvasManager.FlipPauseState(this));
             }
         }
     }
@@ -113,6 +110,11 @@ public class PlayerCore : MonoBehaviour
 
     #region CUSTOM_METHODS
 
+    public HUDManager GetHUD()
+    {
+        return canvasManager;
+    }
+
     public void EnableControls(bool b)
     {
         Cursor.lockState = b ?
@@ -122,37 +124,21 @@ public class PlayerCore : MonoBehaviour
 
         bInputEnabled = b;
         cSpellCaster.CastBeamActive(b);
-
-        if (crosshair != null)
-        {
-            crosshair.SetActive(b);
-        }
-    }
-
-    public void PauseGame()
-    {
-        EnableControls(!cPauseMenu.FlipPauseState(this));
     }
 
     public void OnHurt()
     {
-        if (cHurtFlash != null)
-        {
-            cHurtFlash.Flash();
-        }
+        canvasManager.OnPlayerHurt();
     }
 
     public void OnDeath()
     {
-        if (cGameOverMenu != null)
-        {
-            EnableControls(false);
-            cGameOverMenu.Activate();
-        }
+        bIsDead = true;
+        canvasManager.OnPlayerDeath();
+        EnableControls(false);
 
         if (playerModel != null)
         {
-            bIsDead = true;
             playerModel.GetComponent<PlayerModelRotator>().enabled = false;
             playerModel.GetComponent<Rigidbody>().isKinematic = false;
             playerModel.GetComponent<CapsuleCollider>().enabled = true;

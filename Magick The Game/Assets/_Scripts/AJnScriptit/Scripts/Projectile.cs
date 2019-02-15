@@ -7,6 +7,7 @@ public class Projectile : MonoBehaviour
     [SerializeField] private float speed                = 1.0f;
     [SerializeField] private float damage               = 50.0f;
     [SerializeField] private float aliveTime            = 10.0f;
+    [SerializeField] private float manaCost             = 10.0f;
     [SerializeField] private LayerMask physicsLayerMask = 1;
     [SerializeField] private GameObject explosion       = null;
 
@@ -78,6 +79,11 @@ public class Projectile : MonoBehaviour
     {
         transform.position = spawnPosition;
         direction = spawnDirection;
+    }
+
+    public float GetManaCost()
+    {
+        return manaCost;
     }
 
     #endregion
