@@ -111,7 +111,7 @@ public class PlayerMovement : MonoBehaviour
             //slopeNormal = Vector3.up;
             movingPlatform = null;
 
-            if ((cCharacter.collisionFlags & CollisionFlags.Sides) > 0)
+            if ((cCharacter.collisionFlags & CollisionFlags.Sides) > 0 && wstTimer > 0.0f)
             {
                 bIsWallSliding = true;
             }
