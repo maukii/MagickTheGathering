@@ -4,9 +4,9 @@ using UnityEngine;
 
 public class TrapGeneric : MonoBehaviour
 {
-    //works for falling bookcases/pillars, wall of death-traps and trap doors
+    //works for falling bookcases/pillars, wall of death-traps, spike traps and trap doors
     //goes to the trigger/pivot object
-
+    
     [SerializeField]
     private Animator anim;
 
