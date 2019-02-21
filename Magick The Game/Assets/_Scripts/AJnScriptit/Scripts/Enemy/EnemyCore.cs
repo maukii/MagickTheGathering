@@ -32,15 +32,18 @@ public class EnemyCore : MonoBehaviour
     [SerializeField] private EState stateAfterSearch = EState.GUARD;
     [SerializeField] private EEnemyType enemyType = EEnemyType.MELEE;
     [SerializeField] private GameObject projectile = null;
+    [SerializeField] private bool bSearchPlayerWhenLost = false;
     [SerializeField] private float navigationInterval = 1.0f;
     [SerializeField] private float spiderSenseRadius = 5.0f;
+    [SerializeField] private float shootInterval = 5.0f;
 
     public EState currentState { get; private set; } = EState.NONE;
+    public EEnemyType currentEnemyType { get; private set; } = EEnemyType.MELEE;
     public Vector3 spawnPosition { get; private set; } = Vector3.zero;
 
     private float stateTimer = 0.0f;
     private float stateTransitionTimer = 0.0f;
-    private float shootIntervalTimer = 5.0f;
+    private float shootIntervalTimer = 0.0f;
     private float navigationTimer = 0.0f;
     private Vector3 targetPosition = Vector3.zero;
     private Vector3 playerOffset = Vector3.zero;
@@ -57,6 +60,7 @@ public class EnemyCore : MonoBehaviour
         playerOffset = Vector3.up * (GlobalVariables.player.GetComponent<CharacterController>().height / 2);
         spawnPosition = transform.position;
         currentState = defaultState;
+        currentEnemyType = enemyType;
         vision = GetComponent<EnemyVision>();
         agent = GetComponent<NavMeshAgent>();
     }
@@ -204,19 +208,26 @@ public class EnemyCore : MonoBehaviour
 
     void AISearch()
     {
-        if (vision.bCanSeePlayer)
+        if (bSearchPlayerWhenLost)
         {
-            currentState = EState.ALERTED;
-            stateTimer = 6.0f;
-            stateTransitionTimer = 0.7f;
+            if (vision.bCanSeePlayer)
+            {
+                currentState = EState.ALERTED;
+                stateTimer = 6.0f;
+                stateTransitionTimer = 0.7f;
+            }
+            else
+            {
+                if (Vector3.Distance(transform.position, vision.playerLKLocation) < 1.0f || vision.playerLKLocation == Vector3.zero)
+                {
+                    currentState = stateAfterSearch;
+                    stateTimer = 6.0f;
+                }
+            }
         }
         else
         {
-            if (Vector3.Distance(transform.position, vision.playerLKLocation) < 1.0f || vision.playerLKLocation == Vector3.zero)
-            {
-                currentState = stateAfterSearch;
-                stateTimer = 6.0f;
-            }
+            currentState = stateAfterSearch;
         }
     }
 
@@ -229,13 +240,22 @@ public class EnemyCore : MonoBehaviour
 
         if (vision.bCanSeePlayer)
         {
+            if (currentEnemyType == EEnemyType.RANGED)
+            {
+                if (Vector3.Distance(transform.position, GlobalVariables.player.transform.position + playerOffset) < spiderSenseRadius)
+                {
+                    currentState = EState.ESCAPE;
+                    return;
+                }
+            }
+
             if (shootIntervalTimer <= 0.0f)
             {
-                shootIntervalTimer = 3.0f;
+                shootIntervalTimer = shootInterval;
                 if (projectile != null)
                 {
                     Vector3 direction = -Vector3.Normalize(transform.position + Vector3.up * 1.0f - (GlobalVariables.player.transform.position + Vector3.up * 1.0f));
-                    Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + Vector3.up * 1.0f, direction);
+                    Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + Vector3.up * 1.0f, direction, this.gameObject);
                 }
             }
         }
@@ -247,7 +267,10 @@ public class EnemyCore : MonoBehaviour
 
     void AIEscape()
     {
-
+        if (Vector3.Distance(transform.position, GlobalVariables.player.transform.position + playerOffset) > 20.0f)
+        {
+            currentState = EState.ATTACK;
+        }
     }
 
     void AIPanic()

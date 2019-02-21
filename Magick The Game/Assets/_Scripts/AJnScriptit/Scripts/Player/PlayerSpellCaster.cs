@@ -103,7 +103,7 @@ public class PlayerSpellCaster : MonoBehaviour
             {
                 Vector3 direction = -Vector3.Normalize(transform.position + charPositionOffset - castPoint);
                 Projectile spell = Instantiate(projectile).GetComponent<Projectile>();
-                spell.Initialize(transform.position + charPositionOffset, direction);
+                spell.Initialize(transform.position + charPositionOffset, direction, this.gameObject);
                 cMana.UseMana(spell.GetManaCost());
             }
         }

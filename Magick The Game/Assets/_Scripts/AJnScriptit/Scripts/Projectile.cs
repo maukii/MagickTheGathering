@@ -13,6 +13,7 @@ public class Projectile : MonoBehaviour
 
     private bool hitSomething                           = false;
     private GameObject hitTarget                        = null;
+    private GameObject owner                            = null;
     private Vector3 direction                           = Vector3.zero;
 
     #endregion
@@ -39,10 +40,13 @@ public class Projectile : MonoBehaviour
             physicsLayerMask
             ))
         {
-            transform.position = hit.point;
-            hitSomething = true;
-            hitTarget = hit.transform.gameObject;
-            Destroy(this.gameObject);
+            if (hit.transform.gameObject != owner)
+            {
+                transform.position = hit.point;
+                hitSomething = true;
+                hitTarget = hit.transform.gameObject;
+                Destroy(this.gameObject);
+            }
         }
         else
         {
@@ -75,8 +79,9 @@ public class Projectile : MonoBehaviour
 
     #region CUSTOM_METHODS
 
-    public void Initialize(Vector3 spawnPosition, Vector3 spawnDirection)
+    public void Initialize(Vector3 spawnPosition, Vector3 spawnDirection, GameObject caller)
     {
+        owner = caller;
         transform.position = spawnPosition;
         direction = spawnDirection;
     }

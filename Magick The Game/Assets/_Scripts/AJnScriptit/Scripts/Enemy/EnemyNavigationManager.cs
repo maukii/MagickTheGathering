@@ -115,12 +115,18 @@ public class EnemyNavigationManager : MonoBehaviour
 
     void AIAttack()
     {
-        agent.SetDestination(GetComponent<EnemyVision>().playerLKLocation);
+        if (cEnemyCore.currentEnemyType == EnemyCore.EEnemyType.MELEE)
+        {
+            agent.SetDestination(GetComponent<EnemyVision>().playerLKLocation);
+        }
     }
 
     void AIEscape()
     {
-
+        if (Vector3.Distance(transform.position, GlobalVariables.player.transform.position) < 20.0f)
+        {
+            agent.SetDestination(transform.position + Vector3.Normalize(transform.position - GlobalVariables.player.transform.position) * 5.0f);
+        }
     }
 
     void AIPanic()
