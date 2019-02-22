@@ -84,6 +84,7 @@ public class Projectile : MonoBehaviour
         owner = caller;
         transform.position = spawnPosition;
         direction = spawnDirection;
+        transform.rotation = Quaternion.LookRotation(spawnDirection, Vector3.up);
     }
 
     public float GetManaCost()

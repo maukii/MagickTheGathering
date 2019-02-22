@@ -86,16 +86,19 @@ public class Health : MonoBehaviour
 
     public void Kill()
     {
-        health = 0.0f;
-        bIsDead = true;
+        if (!bIsDead)
+        {
+            health = 0.0f;
+            bIsDead = true;
 
-        if (bIsPlayer)
-        {
-            GetComponent<PlayerCore>().OnDeath();
-        }
-        else
-        {
-            GetComponent<EnemyCore>().OnDeath();
+            if (bIsPlayer)
+            {
+                GetComponent<PlayerCore>().OnDeath();
+            }
+            else
+            {
+                GetComponent<EnemyCore>().OnDeath();
+            }
         }
     }
 

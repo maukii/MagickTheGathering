@@ -1,55 +1,83 @@
 ﻿using UnityEditor;
 using UnityEngine;
-using UnityEngine.AI;
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(EnemyVision))]
+[RequireComponent(typeof(EnemyNavigation))]
 public class EnemyCore : MonoBehaviour
 {
     #region VARIABLES
 
+    struct StatusEffects
+    {
+        bool isOnFire;
+        bool isConfused;
+        bool isFrozen;
+        bool isKnocked;
+    };
+
     public enum EState
     {
-        NONE,
-        STAND,
-        GUARD,
-        ALERTED,
-        PATROL,
-        SEARCH,
-        ATTACK,
-        ESCAPE,
-        PANIC
+        //Also available in EDefaultState
+        DISABLED,   //No AI.
+        IDLE,       //Stand still.
+        PATROL,     //Walk and patrol a specific route.
+
+        //Only available in this enum
+        ALERTED,    //Look towards suspicious sound sources.
+        PARANOID,   //Stand still but look around for a while.
+        SEARCH,     //Search for player at the last known location.
+        ATTACK,     //MELEE: Move towards player and attack.
+                    //RANGED: Stand still and shoot towards player.
+        ESCAPE,     //RANGED: Move away from player
+        PANIC,      //Run in random directions
+        CONFUSED,   //Shoot at other enemies
+        RAGDOLLED,  //No AI when ragdolled.
+        VICTORY     //Enemy killed the player, laugh at his/her failure!
+    };
+
+    private enum EDefaultState
+    {
+        DISABLED,
+        IDLE,
+        PATROL
     };
 
     public enum EEnemyType
     {
         MELEE,
-        RANGED
+        RANGED,
+        MAGIC
     };
 
-    [SerializeField] private EState defaultState = EState.STAND;
-    [SerializeField] private EState stateAfterAlerted = EState.SEARCH;
-    [SerializeField] private EState stateAfterSearch = EState.GUARD;
+    [SerializeField] private EDefaultState defaultState = EDefaultState.IDLE;
     [SerializeField] private EEnemyType enemyType = EEnemyType.MELEE;
+    [SerializeField] private bool searchPlayerAfterAttack = true;
+    [SerializeField] private float hearingRadius = 10.0f;
+    [SerializeField] private float instantSightRadius = 3.0f;
+    [SerializeField] private float rangedEscapeRadius = 10.0f;
+    [SerializeField] private float radiusCheckInterval = 1.0f;
+    [SerializeField] private float paranoidDuration = 5.0f;
+
     [SerializeField] private GameObject projectile = null;
-    [SerializeField] private bool bSearchPlayerWhenLost = false;
-    [SerializeField] private float navigationInterval = 1.0f;
-    [SerializeField] private float spiderSenseRadius = 5.0f;
     [SerializeField] private float shootInterval = 5.0f;
 
-    public EState currentState { get; private set; } = EState.NONE;
-    public EEnemyType currentEnemyType { get; private set; } = EEnemyType.MELEE;
     public Vector3 spawnPosition { get; private set; } = Vector3.zero;
+    public Vector3 spawnRotation { get; private set; } = Vector3.zero;
+    public EState currentState { get; private set; } = EState.IDLE;
+    public EEnemyType currentEnemyType { get; private set; } = EEnemyType.MELEE;
+    public EnemyVision vision { get; private set; } = null;
+    public EnemyNavigation navigation { get; private set; } = null;
+    public Animator animator { get; private set; } = null;
 
-    private float stateTimer = 0.0f;
-    private float stateTransitionTimer = 0.0f;
+    private bool bIsAttacking = false;
+    private float radiusCheckTimer = 0.0f;
+    private float alertedTimer = 0.0f;
+    private float paranoidTimer = 0.0f;
     private float shootIntervalTimer = 0.0f;
-    private float navigationTimer = 0.0f;
-    private Vector3 targetPosition = Vector3.zero;
+    private Vector3 playerPosition = Vector3.zero;
     private Vector3 playerOffset = Vector3.zero;
-    private EState previousState = EState.NONE;
-    private EnemyVision vision = null;
-    private NavMeshAgent agent = null;
+    private EState previousState = EState.DISABLED;
 
     #endregion
 
@@ -57,52 +85,75 @@ public class EnemyCore : MonoBehaviour
 
     void Start()
     {
+        vision = GetComponent<EnemyVision>();
+        navigation = GetComponent<EnemyNavigation>();
+
+        if (GetComponent<Animator>() != null)
+        {
+            animator = GetComponent<Animator>();
+            animator.enabled = false;
+        }
+
         playerOffset = Vector3.up * (GlobalVariables.player.GetComponent<CharacterController>().height / 2);
         spawnPosition = transform.position;
-        currentState = defaultState;
+        spawnRotation = transform.rotation.eulerAngles;
+        currentState = (EState)defaultState;
         currentEnemyType = enemyType;
-        vision = GetComponent<EnemyVision>();
-        agent = GetComponent<NavMeshAgent>();
     }
 
     void Update()
     {
         AdvanceTimers();
+        playerPosition = GlobalVariables.player.transform.position + playerOffset;
 
-        if (Vector3.Distance(transform.position, GlobalVariables.player.transform.position + playerOffset) < spiderSenseRadius)
+        if (currentState == EState.IDLE
+            || currentState == EState.PATROL
+            || currentState == EState.SEARCH
+            || currentState == EState.PARANOID)
         {
-            RaycastHit hit;
-            if (Physics.Raycast(
-                transform.position,
-                -Vector3.Normalize(transform.position - GlobalVariables.player.transform.position + playerOffset),
-                out hit,
-                spiderSenseRadius,
-                1
-                ))
+            if (Vector3.Distance(transform.position, playerPosition) < hearingRadius)
             {
-                if (currentState == EState.STAND
-                    || currentState == EState.GUARD
-                    || currentState == EState.PATROL
-                    || currentState == EState.SEARCH)
+                RaycastHit hit;
+                if (Physics.Raycast(
+                    transform.position,
+                    Vector3.Normalize(playerPosition - transform.position),
+                    out hit,
+                    hearingRadius,
+                    1
+                    ))
                 {
-                    currentState = EState.ALERTED;
-                    stateTimer = 6.0f;
+                    if (hit.transform.tag == "Player")
+                    {
+                        if (Vector3.Distance(transform.position, playerPosition) < instantSightRadius)
+                        {
+                            currentState = EState.ATTACK;
+                            vision.LookAt(playerPosition);
+                        }
+                        else
+                        {
+                            currentState = EState.PARANOID;
+                            paranoidTimer = paranoidDuration;
+                        }
+                    }
                 }
             }
         }
 
         switch (currentState)
         {
-            case EState.NONE:                                   break;
-            case EState.STAND:      AIStand();                  break;
-            case EState.GUARD:      AIGuard();                  break;
-            case EState.ALERTED:    AIAlerted();                break;
-            case EState.PATROL:     AIPatrol();                 break;
+            case EState.DISABLED: AIDisabled();                                  break;
+            case EState.IDLE:      AIIdle();                  break;
+            case EState.PATROL: AIPatrol(); break;
+            case EState.ALERTED: AIAlerted(); break;
+            case EState.PARANOID:    AIParanoid();                break;
             case EState.SEARCH:     AISearch();                 break;
             case EState.ATTACK:     AIAttack();                 break;
             case EState.ESCAPE:     AIEscape();                 break;
             case EState.PANIC:      AIPanic();                  break;
-            default:                currentState = EState.NONE; break;
+            case EState.CONFUSED: AIConfused(); break;
+            case EState.RAGDOLLED: AIRagdolled(); break;
+            case EState.VICTORY: AIVictory(); break;
+            default:                currentState = EState.DISABLED; break;
         }
     }
 
@@ -110,7 +161,7 @@ public class EnemyCore : MonoBehaviour
     {
         Handles.Label(transform.position + Vector3.up * 2.0f, currentState.ToString());
         Gizmos.color = new Color(1.0f, 0.0f, 0.0f, 0.1f);
-        Gizmos.DrawSphere(transform.position, spiderSenseRadius);
+        Gizmos.DrawSphere(transform.position, hearingRadius);
     }
 
     #endregion
@@ -122,25 +173,30 @@ public class EnemyCore : MonoBehaviour
         float time = Time.deltaTime;
 
         shootIntervalTimer      -= shootIntervalTimer > 0.0f    ? time : 0.0f;
-        stateTimer              -= stateTimer > 0.0f            ? time : 0.0f;
-        stateTransitionTimer    -= stateTransitionTimer > 0.0f  ? time : 0.0f;
-        navigationTimer         -= navigationTimer > 0.0f       ? time : 0.0f;
+        radiusCheckTimer        -= radiusCheckTimer > 0.0f      ? time : 0.0f;
+        paranoidTimer           -= paranoidTimer > 0.0f         ? time : 0.0f;
+        alertedTimer -= alertedTimer > 0.0f ? time : 0.0f;
+
+        if (!vision.bCanSeePlayer)
+        {
+            shootIntervalTimer = shootInterval;
+        }
     }
 
     public void OnHurt()
     {
         switch (currentState)
         {
-            case EState.STAND:      currentState = EState.ALERTED;  stateTimer = 6.0f; break;
-            case EState.GUARD:      currentState = EState.ALERTED; stateTimer = 6.0f; break;
-            case EState.PATROL:     currentState = EState.ALERTED; stateTimer = 6.0f; break;
-            case EState.SEARCH:     currentState = EState.ALERTED; stateTimer = 6.0f; break;
+            case EState.IDLE:       currentState = EState.PARANOID; paranoidTimer = paranoidDuration; break;
+            case EState.PATROL:     currentState = EState.PARANOID; paranoidTimer = paranoidDuration; break;
+            case EState.SEARCH:     currentState = EState.PARANOID; paranoidTimer = paranoidDuration; break;
+            case EState.PARANOID:   currentState = EState.ALERTED; vision.LookAt(playerPosition);  alertedTimer = 2.0f; break;
         }
     }
 
     public void OnDeath()
     {
-        currentState = EState.NONE;
+        currentState = EState.DISABLED;
         Destroy(this.gameObject);
     }
 
@@ -148,48 +204,23 @@ public class EnemyCore : MonoBehaviour
 
     #region AI_LOGIC
 
-    void AIStand()
+    void AIDisabled()
     {
-        if (vision.bCanSeePlayer)
+        if (animator.enabled)
         {
-            currentState = EState.ALERTED;
-            stateTimer = 6.0f;
-            stateTransitionTimer = 1.5f;
-        }
-        else
-        {
-            if (navigationTimer <= 0.0f)
+            if (shootIntervalTimer <= 0.0f)
             {
-                if (Vector3.Distance(transform.position, spawnPosition) > 3.0f)
-                {
-                    navigationTimer = navigationInterval;
-                }
-            }
-        }
-    }
-
-    void AIGuard()
-    {
-        if (vision.bCanSeePlayer)
-        {
-            currentState = EState.ALERTED;
-            stateTimer = 6.0f;
-            stateTransitionTimer = 0.7f;
-        }
-    }
-
-    void AIAlerted()
-    {
-        if (vision.bCanSeePlayer)
-        {
-            if (stateTransitionTimer <= 0.0f)
-            {
+                animator.enabled = false;
                 currentState = EState.ATTACK;
             }
         }
-        else if (stateTimer <= 0.0f)
+    }
+
+    void AIIdle()
+    {
+        if (vision.bCanSeePlayer)
         {
-            currentState = stateAfterAlerted;
+            currentState = EState.ATTACK;
         }
     }
 
@@ -197,65 +228,93 @@ public class EnemyCore : MonoBehaviour
     {
         if (vision.bCanSeePlayer)
         {
-            if (vision.bCanSeePlayer)
+            currentState = EState.ATTACK;
+        }
+    }
+
+    void AIAlerted()
+    {
+        if (vision.bCanSeePlayer)
+        {
+            currentState = EState.ATTACK;
+        }
+        else
+        {
+            if (alertedTimer <= 0.0f)
             {
-                currentState = EState.ALERTED;
-                stateTimer = 6.0f;
-                stateTransitionTimer = 0.7f;
+                currentState = EState.PARANOID;
+                paranoidTimer = paranoidDuration;
+            }
+        }
+    }
+
+    void AIParanoid()
+    {
+        if (vision.bCanSeePlayer)
+        {
+            currentState = EState.ATTACK;
+        }
+        else
+        {
+            if (paranoidTimer <= 0.0f)
+            {
+                currentState = (EState)defaultState;
             }
         }
     }
 
     void AISearch()
     {
-        if (bSearchPlayerWhenLost)
+        if (searchPlayerAfterAttack)
         {
             if (vision.bCanSeePlayer)
             {
-                currentState = EState.ALERTED;
-                stateTimer = 6.0f;
-                stateTransitionTimer = 0.7f;
+                currentState = EState.ATTACK;
             }
             else
             {
-                if (Vector3.Distance(transform.position, vision.playerLKLocation) < 1.0f || vision.playerLKLocation == Vector3.zero)
+                if (Vector3.Distance(transform.position, vision.playerLKLocation) < navigation.navigationErrorMargin || vision.playerLKLocation == Vector3.zero)
                 {
-                    currentState = stateAfterSearch;
-                    stateTimer = 6.0f;
+                    currentState = EState.PARANOID;
+                    paranoidTimer = paranoidDuration;
                 }
             }
         }
         else
         {
-            currentState = stateAfterSearch;
+            currentState = EState.PARANOID;
         }
     }
 
     void AIAttack()
     {
-        if (navigationTimer <= 0.0f)
-        {
-            navigationTimer = navigationInterval;
-        }
-
         if (vision.bCanSeePlayer)
         {
             if (currentEnemyType == EEnemyType.RANGED)
             {
-                if (Vector3.Distance(transform.position, GlobalVariables.player.transform.position + playerOffset) < spiderSenseRadius)
+                if (Vector3.Distance(transform.position, playerPosition) < rangedEscapeRadius)
                 {
                     currentState = EState.ESCAPE;
                     return;
                 }
-            }
 
-            if (shootIntervalTimer <= 0.0f)
-            {
-                shootIntervalTimer = shootInterval;
-                if (projectile != null)
+                if (shootIntervalTimer <= 0.0f)
                 {
-                    Vector3 direction = -Vector3.Normalize(transform.position + Vector3.up * 1.0f - (GlobalVariables.player.transform.position + Vector3.up * 1.0f));
-                    Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + Vector3.up * 1.0f, direction, this.gameObject);
+                    shootIntervalTimer = shootInterval;
+                    if (projectile != null)
+                    {
+                        Vector3 direction = -Vector3.Normalize(transform.position + Vector3.up * 1.0f - (playerPosition));
+                        Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + Vector3.up * 1.0f, direction, this.gameObject);
+                    }
+                }
+            }
+            else if (currentEnemyType == EEnemyType.MELEE)
+            {
+                if (Vector3.Distance(transform.position, playerPosition) < 2.0f)
+                {
+                    currentState = EState.DISABLED;
+                    animator.enabled = true;
+                    shootIntervalTimer = 1.0f;
                 }
             }
         }
@@ -267,13 +326,28 @@ public class EnemyCore : MonoBehaviour
 
     void AIEscape()
     {
-        if (Vector3.Distance(transform.position, GlobalVariables.player.transform.position + playerOffset) > 20.0f)
+        if (Vector3.Distance(transform.position, playerPosition) > 20.0f)
         {
             currentState = EState.ATTACK;
         }
     }
 
     void AIPanic()
+    {
+
+    }
+
+    void AIConfused()
+    {
+
+    }
+
+    void AIRagdolled()
+    {
+
+    }
+
+    void AIVictory()
     {
 
     }

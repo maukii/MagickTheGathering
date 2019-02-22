@@ -1,23 +1,33 @@
-﻿//using System.Collections;
-//using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 
-public class EnemyNavigationManager : MonoBehaviour
+[RequireComponent(typeof(EnemyCore))]
+[RequireComponent(typeof(NavMeshAgent))]
+public class EnemyNavigation : MonoBehaviour
 {
-    [SerializeField] private float navigationErrorMargin = 0.5f;
+    #region VARIABLES
+
     [SerializeField] private float navigationInterval = 1.0f;
+    [SerializeField] private float waitAtPatrolPoint = 0.0f;
     [SerializeField] private Vector3[] patrolPoints;
+
+    public float navigationErrorMargin { get; private set; } = 0.5f;
 
     private int navCurrentPoint = 0;
     private float navTimer = 0.0f;
+    private float waitTimer = 0.0f;
     private EnemyCore cEnemyCore = null;
     private NavMeshAgent agent = null;
+
+    #endregion
+
+    #region UNITY_DEFAULT_METHODS
 
     void Start()
     {
         cEnemyCore = GetComponent<EnemyCore>();
         agent = GetComponent<NavMeshAgent>();
+        navTimer = Random.Range(0.0f, 2.0f);
     }
 
     void Update()
@@ -27,20 +37,28 @@ public class EnemyNavigationManager : MonoBehaviour
             navTimer = navigationInterval;
             switch (cEnemyCore.currentState)
             {
-                case EnemyCore.EState.STAND:    AIStand();      break;
-                case EnemyCore.EState.GUARD:    AIGuard();      break;
-                case EnemyCore.EState.ALERTED:  AIAlerted();    break;
-                case EnemyCore.EState.PATROL:   AIPatrol();     break;
-                case EnemyCore.EState.SEARCH:   AISearch();     break;
-                case EnemyCore.EState.ATTACK:   AIAttack();     break;
-                case EnemyCore.EState.ESCAPE:   AIEscape();     break;
-                case EnemyCore.EState.PANIC:    AIPanic();      break;
-                default:                                        break;
+                case EnemyCore.EState.IDLE: AIIdle(); break;
+                case EnemyCore.EState.PATROL: AIPatrol(); break;
+                case EnemyCore.EState.ALERTED: AIAlerted(); break;
+                case EnemyCore.EState.PARANOID: AIParanoid(); break;
+                case EnemyCore.EState.SEARCH: AISearch(); break;
+                case EnemyCore.EState.ATTACK: AIAttack(); break;
+                case EnemyCore.EState.ESCAPE: AIEscape(); break;
+                case EnemyCore.EState.PANIC: AIPanic(); break;
+                case EnemyCore.EState.CONFUSED: AIConfused(); break;
+                case EnemyCore.EState.RAGDOLLED: break;
+                case EnemyCore.EState.VICTORY: break;
+                default: if (agent.hasPath) agent.ResetPath(); break;
             }
         }
         else
         {
             navTimer -= Time.deltaTime;
+        }
+
+        if (waitTimer > 0.0f)
+        {
+            waitTimer -= Time.deltaTime;
         }
     }
 
@@ -69,10 +87,11 @@ public class EnemyNavigationManager : MonoBehaviour
         }
     }
 
+    #endregion
 
+    #region AI_LOGIC
 
-
-    void AIStand()
+    void AIIdle()
     {
         if (Vector3.Distance(transform.position, cEnemyCore.spawnPosition) > navigationErrorMargin)
         {
@@ -80,12 +99,33 @@ public class EnemyNavigationManager : MonoBehaviour
         }
     }
 
-    void AIGuard()
+    void AIPatrol()
     {
-        AIStand();
+        Vector2 playerPos = new Vector2(transform.position.x, transform.position.z);
+        Vector2 patrolPos = new Vector2(patrolPoints[navCurrentPoint].x, patrolPoints[navCurrentPoint].z);
+
+        if (Vector2.Distance(playerPos, patrolPos) < navigationErrorMargin)
+        {
+            waitTimer = waitAtPatrolPoint;
+            navCurrentPoint++;
+            if (navCurrentPoint >= patrolPoints.Length)
+            {
+                navCurrentPoint = 0;
+            }
+        }
+
+        if (waitTimer <= 0.0f)
+        {
+            agent.SetDestination(patrolPoints[navCurrentPoint]);
+        }
     }
 
     void AIAlerted()
+    {
+        //agent.SetDestination(GlobalVariables.player.transform.position);
+    }
+
+    void AIParanoid()
     {
         Vector3 randomPosition = Vector3.zero;
         randomPosition.x = Random.Range(-1.0f, 1.0f);
@@ -93,19 +133,6 @@ public class EnemyNavigationManager : MonoBehaviour
         randomPosition.z = Random.Range(-1.0f, 1.0f);
 
         agent.SetDestination(transform.position + randomPosition);
-    }
-
-    void AIPatrol()
-    {
-        if (Vector3.Distance(transform.position, patrolPoints[navCurrentPoint]) < navigationErrorMargin)
-        {
-            navCurrentPoint++;
-            if (navCurrentPoint >= patrolPoints.Length)
-            {
-                navCurrentPoint = 0;
-            }
-        }
-        agent.SetDestination(patrolPoints[navCurrentPoint]);
     }
 
     void AISearch()
@@ -118,6 +145,10 @@ public class EnemyNavigationManager : MonoBehaviour
         if (cEnemyCore.currentEnemyType == EnemyCore.EEnemyType.MELEE)
         {
             agent.SetDestination(GetComponent<EnemyVision>().playerLKLocation);
+        }
+        else if (cEnemyCore.currentEnemyType == EnemyCore.EEnemyType.RANGED)
+        {
+            agent.ResetPath();
         }
     }
 
@@ -133,4 +164,11 @@ public class EnemyNavigationManager : MonoBehaviour
     {
 
     }
+
+    void AIConfused()
+    {
+
+    }
+
+    #endregion
 }

@@ -1,11 +1,13 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(EnemyCore))]
 public class EnemyVision : MonoBehaviour
 {
     #region VARIABLES
 
-    [SerializeField] private Transform headTransform = null;
+    public Transform headTransform = null;
+
     [SerializeField] private float sightDistance = 30.0f;
     [SerializeField] private float sightRadius = 45.0f;
     [SerializeField] private float checkInterval = 0.5f;
@@ -15,7 +17,7 @@ public class EnemyVision : MonoBehaviour
 
     private float checkTimer = 0.0f;
     private float raycastGraceTimer = 0.0f;
-    private Vector3 playerLocation = Vector3.zero;
+    private Vector3 playerPosition = Vector3.zero;
     private Vector3 playerOffset = Vector3.zero;
 
     #endregion
@@ -53,6 +55,7 @@ public class EnemyVision : MonoBehaviour
     void Start()
     {
         playerOffset = Vector3.up * (GlobalVariables.player.GetComponent<CharacterController>().height / 2);
+        checkTimer = Random.Range(0.0f, 2.0f);
 
         for (int i = 0; i < visionVertices.Length; i++)
         {
@@ -64,17 +67,36 @@ public class EnemyVision : MonoBehaviour
 
     void FixedUpdate()
     {
-        playerLocation = GlobalVariables.player.transform.position + playerOffset;
-        Vector3 playerDirection = -Vector3.Normalize(transform.position - playerLocation);
+        playerPosition = GlobalVariables.player.transform.position + playerOffset;
+        Vector3 playerDirection = -Vector3.Normalize(transform.position - playerPosition);
+        Quaternion headRotation = headTransform.rotation;
 
         if (bCanSeePlayer)
         {
-            headTransform.LookAt(playerLocation);
-            playerLKLocation = playerLocation;
+            headTransform.LookAt(playerPosition);
+            headTransform.rotation = Quaternion.Lerp(headTransform.rotation, headRotation, 0.9f);
+
+            RaycastHit hit;
+            if (Physics.Raycast(
+                playerPosition,
+                Vector3.down,
+                out hit,
+                Mathf.Infinity,
+                1
+                ))
+            {
+                playerLKLocation = hit.point + playerOffset;
+            }
+            else
+            {
+                playerLKLocation = playerPosition;
+            }
         }
         else
         {
             headTransform.LookAt(headTransform.position + Vector3.Normalize(GetComponent<NavMeshAgent>().velocity));
+            headTransform.rotation = Quaternion.Lerp(headTransform.rotation, headRotation, 0.9f);
+
             if (Vector3.Distance(transform.position, playerLKLocation) < 1.0f)
             {
                 playerLKLocation = Vector3.zero;
@@ -89,15 +111,15 @@ public class EnemyVision : MonoBehaviour
         {
             if (!bCanSeePlayer)
             {
-                checkTimer = checkInterval + Random.Range(0.01f, 0.1f);
+                checkTimer = checkInterval;
             }
 
-            if (Vector3.Distance(headTransform.position, playerLocation) < sightDistance)
+            if (Vector3.Distance(headTransform.position, playerPosition) < sightDistance)
             {
                 Vector3[] vvTemp = new Vector3[visionVertices.Length];
                 vvTemp = TranslateVertices(visionVertices, transform.position, headTransform.rotation);
                 Mesh mesh = GenerateMesh(vvTemp, visionTriangles);
-                bool bIsInside = IsPointInside(mesh, playerLocation);
+                bool bIsInside = IsPointInside(mesh, playerPosition);
 
                 if (bIsInside)
                 {
@@ -177,6 +199,11 @@ public class EnemyVision : MonoBehaviour
     #endregion
 
     #region CUSTOM_METHODS
+
+    public void LookAt(Vector3 position)
+    {
+        headTransform.LookAt(position);
+    }
 
     Vector3[] TranslateVertices(Vector3[] inputArray, Vector3 translateVector, Quaternion headRotation)
     {
