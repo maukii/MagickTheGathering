@@ -1,5 +1,8 @@
-﻿using UnityEditor;
-using UnityEngine;
+﻿using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(EnemyVision))]
@@ -159,9 +162,11 @@ public class EnemyCore : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        #if UNITY_EDITOR
         Handles.Label(transform.position + Vector3.up * 2.0f, currentState.ToString());
         Gizmos.color = new Color(1.0f, 0.0f, 0.0f, 0.1f);
         Gizmos.DrawSphere(transform.position, hearingRadius);
+        #endif
     }
 
     #endregion
