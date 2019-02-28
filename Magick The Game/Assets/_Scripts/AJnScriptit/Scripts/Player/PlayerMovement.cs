@@ -7,8 +7,8 @@ public class PlayerMovement : MonoBehaviour
     
     [SerializeField] private float acceleration         = 100.0f;
     [SerializeField] private float airAcceleration      = 20.0f;
-    [SerializeField] private float friction             = 0.1f;
-    [SerializeField] private float airFriction          = 0.02f;
+    [SerializeField] private float friction             = 5.5f;
+    [SerializeField] private float airFriction          = 1.5f;
     [SerializeField] private float gravity              = -30.0f;
     [SerializeField] private float smoothStepDown       = 0.5f;
     [SerializeField] private float jumpForce            = 15.0f;
@@ -92,14 +92,14 @@ public class PlayerMovement : MonoBehaviour
 
     #region CUSTOM_METHODS
 
-    public void Move(float x, float y, bool jump, bool dash)
+    public void Move(float inputX, float inputY, bool inputJump, bool inputDash)
     {
         CalculateMovingPlatform();
         CalculateCooldowns();
 
         Vector3 lookDirection = cTPCamera.lookDirection;
 
-        float moveSpeed = Mathf.Abs(x) + Mathf.Abs(y);
+        float moveSpeed = Mathf.Abs(inputX) + Mathf.Abs(inputY);
         if (moveSpeed >= 1.0f)
         {
             moveSpeed = 1.0f;
@@ -129,7 +129,7 @@ public class PlayerMovement : MonoBehaviour
         //Get the desired movement unit vector based on where the player is looking at
         Vector3 lookVector = new Vector3(Mathf.Sin(lookDirection.y * Mathf.Deg2Rad), 0.0f, Mathf.Cos(lookDirection.y * Mathf.Deg2Rad));
         Vector3 sideLookVector = Vector3.Cross(lookVector, Vector3.down);
-        moveDirection = Vector3.Normalize(lookVector * y + sideLookVector * x);
+        moveDirection = Vector3.Normalize(lookVector * inputY + sideLookVector * inputX);
 
         //Get a vector pointing downwards a slope
         Vector2 slopeTemp = Vector2.Perpendicular(new Vector2(slopeNormal.x, slopeNormal.z));
@@ -153,8 +153,8 @@ public class PlayerMovement : MonoBehaviour
             if (dDurationTimer <= 0.0f)
             {
                 tempVector -= isGrounded ?
-                    tempVector * friction
-                    : tempVector * airFriction;
+                    tempVector * friction * Time.deltaTime
+                    : tempVector * airFriction * Time.deltaTime;
             }
 
             //Calculate movement in Y direction
@@ -191,7 +191,7 @@ public class PlayerMovement : MonoBehaviour
                 : moveVector.y + tempGravity * Time.deltaTime;
 
             //Dashing
-            if (dash && dCooldownTimer <= 0.0f && dDurationTimer <= 0.0f)
+            if (inputDash && dCooldownTimer <= 0.0f && dDurationTimer <= 0.0f)
             {
                 dDurationTimer = dashDuration;
                 dCooldownTimer = dashCooldown;
@@ -201,7 +201,7 @@ public class PlayerMovement : MonoBehaviour
 
             moveVector = tempVector;
             
-            if (jump)
+            if (inputJump)
             {
                 //Jumping (normal)
                 if (jgtTimer > 0.0f)
