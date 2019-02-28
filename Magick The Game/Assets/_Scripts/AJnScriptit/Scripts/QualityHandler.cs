@@ -2,7 +2,7 @@
 
 public class QualityHandler : MonoBehaviour
 {
-    void Start()
+    void Awake()
     {
         QualityManager.LoadSettings();
     }
@@ -44,5 +44,6 @@ public class QualityHandler : MonoBehaviour
     public void SOFT_VEGETATION(bool b)                         { QualityManager.DATA.SOFT_VEGETATION = b; }
     public void PIXEL_LIGHT_COUNT(int i)                        { QualityManager.DATA.PIXEL_LIGHT_COUNT = i; }
     public void REALTIME_REFLECTIONS(bool b)                    { QualityManager.DATA.REALTIME_REFLECTIONS = b; }
+    public void BILLBOARDS_FACE_CAMERA_POSITION(bool b)         { QualityManager.DATA.BILLBOARDS_FACE_CAMERA_POSITION = b; }
     public void UI_RESOLUTION_DPI_SCALING(float f)              { QualityManager.DATA.UI_RESOLUTION_DPI_SCALING = f; }
 }

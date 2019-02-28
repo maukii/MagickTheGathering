@@ -14,6 +14,7 @@ public static class QualityManager
             {
                 string jsonString = reader.ReadToEnd();
                 DATA = JsonUtility.FromJson<QualityData>(jsonString);
+                Debug.Log(PATH + " loaded successfully.");
             }
         }
         else
@@ -26,8 +27,8 @@ public static class QualityManager
                 case UnityEngine.Rendering.GraphicsTier.Tier3: DATA.SHADER_GRAPHICS_TIER = 3; break;
             }
             SaveSettings();
-            ApplySettings();
         }
+        ApplySettings();
     }
 
     public static void SaveSettings()
@@ -101,6 +102,15 @@ public static class QualityManager
         QualitySettings.softVegetation = DATA.SOFT_VEGETATION;
         QualitySettings.pixelLightCount = DATA.PIXEL_LIGHT_COUNT;
         QualitySettings.realtimeReflectionProbes = DATA.REALTIME_REFLECTIONS;
+        QualitySettings.billboardsFaceCameraPosition = DATA.BILLBOARDS_FACE_CAMERA_POSITION;
         QualitySettings.resolutionScalingFixedDPIFactor = DATA.UI_RESOLUTION_DPI_SCALING;
+
+        if (DATA.SHADER_GRAPHICS_TIER == 3 && Camera.main.actualRenderingPath != RenderingPath.DeferredShading)
+        {
+            Debug.LogWarning("Failed to activate Deferred rendering! Switching back to medium shading...");
+            DATA.SHADER_GRAPHICS_TIER = 2;
+            Graphics.activeTier = UnityEngine.Rendering.GraphicsTier.Tier2;
+        }
+        Debug.Log("Quality settings applied successfully.");
     }
 }

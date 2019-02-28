@@ -35,5 +35,6 @@ public class QualityData
     public bool SOFT_VEGETATION = false;
     public int PIXEL_LIGHT_COUNT = 4;
     public bool REALTIME_REFLECTIONS = true;
+    public bool BILLBOARDS_FACE_CAMERA_POSITION = true;
     public float UI_RESOLUTION_DPI_SCALING = 1.0f;
 }
