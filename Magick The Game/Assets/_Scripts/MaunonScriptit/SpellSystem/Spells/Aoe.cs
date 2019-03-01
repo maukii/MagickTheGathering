@@ -9,7 +9,7 @@ public class Aoe : Spell
     [SerializeField] protected float radius = 7.0f;
     [SerializeField] protected float duration = 5.0f;
 
-    public override void CastSpell(Spellbook spellbook, int spellIndex)
+    public override void CastSpell(Spellbook spellbook, int spellIndex, Vector3 direction)
     {
 
         ///<summary>

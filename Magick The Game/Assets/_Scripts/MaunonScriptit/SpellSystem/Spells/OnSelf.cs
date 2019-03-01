@@ -6,7 +6,7 @@ using UnityEngine;
 public class OnSelf : Spell
 {
 
-    public override void CastSpell(Spellbook spellbook, int spellIndex)
+    public override void CastSpell(Spellbook spellbook, int spellIndex, Vector3 direction)
     {
 
         ///<summary>

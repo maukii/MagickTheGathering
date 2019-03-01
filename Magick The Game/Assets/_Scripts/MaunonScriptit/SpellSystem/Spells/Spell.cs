@@ -29,7 +29,7 @@ public class Spell : MonoBehaviour
 
 
     // most spells override this cause they require different logic
-    public virtual void CastSpell(Spellbook spellbook, int spellIndex)
+    public virtual void CastSpell(Spellbook spellbook, int spellIndex, Vector3 direction)
     {
         // generic spell logic
 
@@ -46,5 +46,7 @@ public class Spell : MonoBehaviour
         }
 
     }
+
+    public virtual void MulticastSpell(Spellbook spellbook, int spellIndex, Vector3 direction) { } // IMPLEMENT THIS
 
 }

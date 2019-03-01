@@ -8,12 +8,10 @@ public class Beam : Spell
     [Header("-- Beam --")]
     [SerializeField] private float range = 150.0f;
 
-    private RaycastHit hit;
-
-    public override void CastSpell(Spellbook spellbook, int spellIndex)
+    public override void CastSpell(Spellbook spellbook, int spellIndex, Vector3 direction)
     {
-
-        Beam beam = Instantiate(this, spellbook.spellPos.position, spellbook.transform.rotation);
+        Quaternion rot = Quaternion.LookRotation(direction, Vector3.up);
+        Beam beam = Instantiate(this, spellbook.spellPos.position, rot);
         beam.transform.parent = spellbook.transform;
 
         // add all modifiers from cards
@@ -31,19 +29,18 @@ public class Beam : Spell
 
     IEnumerator CastBeam(GameObject self, Spellbook spellbook, int spellIndex)
     {
-        Camera cam = Camera.main;
-
         while (true)
         {
             print("Casting beam");
 
-            // beam logic here
-            Ray ray = new Ray(spellbook.spellPos.position, spellbook.transform.forward * range);
-            Debug.DrawRay(spellbook.spellPos.position, spellbook.transform.forward * range);
+            Vector3 direction = spellbook.GetDirection2();
+            Ray ray = new Ray(spellbook.spellPos.position, direction * range);
+            RaycastHit hit;
 
             // if beam hits something do this
-            if(Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out hit))
             {
+                Debug.DrawRay(spellbook.spellPos.position, hit.point, Color.green);
                 print("Beam hits something");
 
                 // apply beam effects here to target we hit
@@ -56,6 +53,11 @@ public class Beam : Spell
                     }
                 }
             }
+            else
+            {
+                Debug.DrawRay(spellbook.spellPos.position, direction * range, Color.red);
+            }
+
 
             if(Input.GetKeyUp((spellIndex + 1).ToString()) || !Input.GetKey((spellIndex + 1).ToString()))
             {

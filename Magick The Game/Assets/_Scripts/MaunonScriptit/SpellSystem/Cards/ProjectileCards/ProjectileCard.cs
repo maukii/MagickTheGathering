@@ -6,6 +6,8 @@ using UnityEngine;
 public class ProjectileCard : Card
 {
 
-    public List<ProjectileModifierSO> projectileModifiers = new List<ProjectileModifierSO>();
+                                                                                                // make this List<OnCastModifier>
+    public List<ProjectileModifierSO> projectileModifiers = new List<ProjectileModifierSO>();   // make this List<OnCollisionModifier>
+                                                                                                // make this List<PassiveModifiers> (homing etc.)
 
 }

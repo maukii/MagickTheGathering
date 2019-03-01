@@ -32,7 +32,7 @@ public class TeleportForward : OnSelfModifier
         var initialPosition = transform.position;
         var initialFov = Camera.main.fieldOfView;
 
-        Vector3 destination = transform.position + transform.forward * distance;
+        Vector3 destination = transform.position + spellbook.GetDirection2() * distance;
         go.GetComponentInChildren<MeshRenderer>().enabled = false;
 
         // Teleport a little bit each frame:
