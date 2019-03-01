@@ -99,10 +99,10 @@ public class PlayerSpellCaster : MonoBehaviour
     {
         if (projectile != null)
         {
-            if (projectile.GetComponent<Projectile>().GetManaCost() < cMana.mana)
+            if (projectile.GetComponent<ProjectileTemp>().GetManaCost() < cMana.mana)
             {
                 Vector3 direction = -Vector3.Normalize(transform.position + charPositionOffset - castPoint);
-                Projectile spell = Instantiate(projectile).GetComponent<Projectile>();
+                ProjectileTemp spell = Instantiate(projectile).GetComponent<ProjectileTemp>();
                 spell.Initialize(transform.position + charPositionOffset, direction, this.gameObject);
                 cMana.UseMana(spell.GetManaCost());
             }
