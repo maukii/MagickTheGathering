@@ -327,7 +327,7 @@ public class EnemyCore : MonoBehaviour
                     if (projectile != null)
                     {
                         Vector3 direction = -Vector3.Normalize(transform.position + Vector3.up * 1.0f - (vision.targetLocation));
-                        Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + Vector3.up * 1.0f, direction, this.gameObject);
+                        Instantiate(projectile).GetComponent<ProjectileTemp>().Initialize(transform.position + Vector3.up * 1.0f, direction, this.gameObject);
                     }
                 }
             }
