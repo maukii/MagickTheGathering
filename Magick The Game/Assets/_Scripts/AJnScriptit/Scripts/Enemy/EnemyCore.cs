@@ -73,7 +73,7 @@ public class EnemyCore : MonoBehaviour
     public EnemyNavigation navigation { get; private set; } = null;
     public Animator animator { get; private set; } = null;
     public Health cHealth { get; private set; } = null;
-    public bool targetPlayer { get; private set; } = false;
+    public bool targetPlayer { get; private set; } = true;
 
     private bool bIsAttacking = false;
     private float radiusCheckTimer = 0.0f;

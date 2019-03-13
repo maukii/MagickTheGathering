@@ -281,7 +281,7 @@ public class PlayerMovement : MonoBehaviour
             moveVector.y = 0.0f;
         }
 
-        ////Debug stuff
+        //Debug stuff
         Debug.DrawLine(transform.position, transform.position + lookVector, Color.blue);    //Forward vector
         Debug.DrawLine(transform.position, transform.position + sideLookVector, Color.red); //Right vector
         Debug.DrawLine(transform.position, transform.position + Vector3.up, Color.green);   //Up vector
@@ -291,7 +291,7 @@ public class PlayerMovement : MonoBehaviour
         //Make an ugly fix, because character controller doesn't detect collisions
         //if it's moving AWAY from it (e.g. moving platform going up)
         Vector3 finalMovement = moveVector * dt + movingPlatformVelocity;
-        if (finalMovement.y > 0.0f)
+        if (movingPlatform != null && finalMovement.y > 0.0f)
         {
             cCharacter.Move(finalMovement + Vector3.up * 0.5f);
             cCharacter.Move(Vector3.down * 0.5f);
