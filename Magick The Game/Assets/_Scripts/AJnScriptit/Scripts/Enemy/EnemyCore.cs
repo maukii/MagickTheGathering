@@ -73,7 +73,7 @@ public class EnemyCore : MonoBehaviour
     public EnemyNavigation navigation { get; private set; } = null;
     public Animator animator { get; private set; } = null;
     public Health cHealth { get; private set; } = null;
-    public bool targetPlayer { get; private set; } = true;
+    public bool targetPlayer { get; private set; } = false;
 
     private bool bIsAttacking = false;
     private float radiusCheckTimer = 0.0f;
@@ -151,19 +151,19 @@ public class EnemyCore : MonoBehaviour
 
         switch (currentState)
         {
-            case EState.DISABLED: AIDisabled();                                  break;
-            case EState.IDLE:      AIIdle();                  break;
+            case EState.DISABLED: AIDisabled(); break;
+            case EState.IDLE: AIIdle(); break;
             case EState.PATROL: AIPatrol(); break;
             case EState.ALERTED: AIAlerted(); break;
-            case EState.PARANOID:    AIParanoid();                break;
-            case EState.SEARCH:     AISearch();                 break;
-            case EState.ATTACK:     AIAttack();                 break;
-            case EState.ESCAPE:     AIEscape();                 break;
-            case EState.PANIC:      AIPanic();                  break;
+            case EState.PARANOID: AIParanoid(); break;
+            case EState.SEARCH: AISearch(); break;
+            case EState.ATTACK: AIAttack(); break;
+            case EState.ESCAPE: AIEscape(); break;
+            case EState.PANIC: AIPanic(); break;
             case EState.CONFUSED: AIConfused(); break;
             case EState.RAGDOLLED: AIRagdolled(); break;
             case EState.VICTORY: AIVictory(); break;
-            default:                currentState = EState.DISABLED; break;
+            default: currentState = EState.DISABLED; break;
         }
     }
 

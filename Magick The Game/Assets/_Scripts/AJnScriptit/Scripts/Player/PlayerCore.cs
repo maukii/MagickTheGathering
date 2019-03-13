@@ -50,7 +50,7 @@ public class PlayerCore : MonoBehaviour
             if (bInputEnabled)
             {
                 cTPCamera.Look(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-                cMovement.Move(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"), Input.GetButtonDown("Jump"), Input.GetButtonDown("Fire3"));
+                cMovement.GetInput(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"), Input.GetButtonDown("Jump"), Input.GetButtonDown("Fire3"));
 
                 if (Input.GetButtonDown("Fire1") || Input.GetAxisRaw("Fire1") != 0.0f)
                 {

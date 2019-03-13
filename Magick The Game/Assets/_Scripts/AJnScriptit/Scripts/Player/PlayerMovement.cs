@@ -24,7 +24,13 @@ public class PlayerMovement : MonoBehaviour
     private CharacterController cCharacter              = null;
     private LayerMask physicsLayerMask                  = 1;
 
+    //Input
+    private Vector2 movementInput = Vector2.zero;
+    private bool bJumpingActivated = false;
+    private bool bDashingActivated = false;
+    
     //Temporary values
+    private float dt                                    = 0.0f;
     private bool bIsWallSliding                         = false;
     private Vector3 moveDirection                       = Vector3.zero;
     private Vector3 moveVector                          = Vector3.zero;
@@ -35,6 +41,7 @@ public class PlayerMovement : MonoBehaviour
     private float wstTimer                              = 0.0f;
     private Transform movingPlatform                    = null;
     private Vector3 movingPlatformPrevPosition          = Vector3.zero;
+    private Vector3 movingPlatformPrevRotation          = Vector3.zero;
     private Vector3 movingPlatformVelocity              = Vector3.zero;
 
     #endregion
@@ -46,6 +53,13 @@ public class PlayerMovement : MonoBehaviour
         cCharacter       = GetComponent<PlayerCore>().cCharacter;
         cTPCamera        = GetComponent<PlayerCore>().cTPCamera;
         physicsLayerMask = GetComponent<PlayerCore>().physicsLayerMask;
+    }
+
+    void FixedUpdate()
+    {
+        Move(movementInput.x, movementInput.y, bJumpingActivated, bDashingActivated);
+        bJumpingActivated = false;
+        bDashingActivated = false;
     }
 
     void OnControllerColliderHit(ControllerColliderHit hit)
@@ -80,6 +94,10 @@ public class PlayerMovement : MonoBehaviour
         {
             movingPlatform = hit.transform;
         }
+        else
+        {
+            movingPlatform = null;
+        }
 
         Vector2 temp = Vector2.Perpendicular(new Vector2(hit.normal.x, hit.normal.z));
         Vector3 temp2 = Vector3.Normalize(Vector3.Cross(hit.normal, new Vector3(temp.x, 0.0f, temp.y)));
@@ -93,8 +111,23 @@ public class PlayerMovement : MonoBehaviour
 
     #region CUSTOM_METHODS
 
-    public void Move(float inputX, float inputY, bool inputJump, bool inputDash)
+    public void GetInput(float inputX, float inputY, bool inputJump, bool inputDash)
     {
+        movementInput = new Vector2(inputX, inputY);
+        if (inputJump && !bJumpingActivated)
+        {
+            bJumpingActivated = true;
+        }
+        if (inputDash && !bDashingActivated)
+        {
+            bDashingActivated = true;
+        }
+    }
+
+    void Move(float inputX, float inputY, bool inputJump, bool inputDash)
+    {
+        dt = Time.fixedDeltaTime;
+
         CalculateMovingPlatform();
         CalculateCooldowns();
 
@@ -146,16 +179,16 @@ public class PlayerMovement : MonoBehaviour
             if (dDurationTimer <= 0.0f)
             {
                 tempVector += isGrounded ?
-                    moveDirection * moveSpeed * acceleration * Time.deltaTime
-                    : moveDirection * moveSpeed * airAcceleration * Time.deltaTime;
+                    moveDirection * moveSpeed * acceleration * dt
+                    : moveDirection * moveSpeed * airAcceleration * dt;
             }
 
             //Calculate friction
             if (dDurationTimer <= 0.0f)
             {
                 tempVector -= isGrounded ?
-                    tempVector * friction * Time.deltaTime
-                    : tempVector * airFriction * Time.deltaTime;
+                    tempVector * friction * dt
+                    : tempVector * airFriction * dt;
             }
 
             //Calculate movement in Y direction
@@ -176,7 +209,10 @@ public class PlayerMovement : MonoBehaviour
                     physicsLayerMask
                     ))
                 {
-                    tempVector.y = -cCharacter.slopeLimit;
+                    if (hit.transform != movingPlatform)
+                    {
+                        tempVector.y = -cCharacter.slopeLimit;
+                    }
                 }
             }
 
@@ -184,12 +220,12 @@ public class PlayerMovement : MonoBehaviour
             if (bIsWallSliding && moveVector.y < 0.0f && wstTimer > 0.0f)
             {
                 tempGravity = gravityWallSliding;
-                wstTimer -= Time.deltaTime;
+                wstTimer -= dt;
             }
 
             tempVector.y = isGrounded ?
-                tempVector.y + gravity * Time.deltaTime
-                : moveVector.y + tempGravity * Time.deltaTime;
+                tempVector.y + gravity * dt
+                : moveVector.y + tempGravity * dt;
 
             //Dashing
             if (inputDash && dCooldownTimer <= 0.0f && dDurationTimer <= 0.0f)
@@ -221,14 +257,14 @@ public class PlayerMovement : MonoBehaviour
         //Do something else when on a steep slope
         else
         {
-            Vector3 tempVector = moveDirection * airAcceleration * Time.deltaTime;
+            Vector3 tempVector = moveDirection * airAcceleration * dt;
             tempVector = Vector3.ProjectOnPlane(tempVector, slopeNormal);
             moveVector = Vector3.ProjectOnPlane(moveVector, slopeNormal);
-            moveVector += tempVector + slopeTemp2 * -gravity * Time.deltaTime;
+            moveVector += tempVector + slopeTemp2 * -gravity * dt;
 
             RaycastHit hit;
             if (!Physics.Raycast(
-                transform.position + slopeNormal + moveVector * Time.deltaTime,
+                transform.position + slopeNormal + moveVector * dt,
                 -slopeNormal,
                 out hit,
                 1.0f + 0.5f,
@@ -252,23 +288,49 @@ public class PlayerMovement : MonoBehaviour
         Debug.DrawLine(transform.position + Vector3.up, transform.position + Vector3.up + moveDirection, Color.cyan); //Desired movement unit vector
         Debug.DrawLine(transform.position + Vector3.up, transform.position + Vector3.up + moveVector.normalized, Color.magenta); //Desired movement unit vector
 
-        cCharacter.Move(moveVector * Time.deltaTime + movingPlatformVelocity);
+        //Make an ugly fix, because character controller doesn't detect collisions
+        //if it's moving AWAY from it (e.g. moving platform going up)
+        Vector3 finalMovement = moveVector * dt + movingPlatformVelocity;
+        if (finalMovement.y > 0.0f)
+        {
+            cCharacter.Move(finalMovement + Vector3.up * 0.5f);
+            cCharacter.Move(Vector3.down * 0.5f);
+        }
+        else
+        {
+            cCharacter.Move(finalMovement);
+        }
     }
 
     void CalculateMovingPlatform()
     {
         if (movingPlatform != null)
         {
+            //Independent from external scripts
             if (movingPlatformPrevPosition != Vector3.zero)
             {
                 movingPlatformVelocity = movingPlatform.position - movingPlatformPrevPosition;
-                movingPlatformVelocity.y += -1.0f * Time.deltaTime;
+                Vector3 dir = transform.position - movingPlatform.position;
+                dir = Quaternion.Euler(movingPlatform.rotation.eulerAngles - movingPlatformPrevRotation) * dir;
+                movingPlatformVelocity -= transform.position - (dir + movingPlatform.position);
             }
             movingPlatformPrevPosition = movingPlatform.position;
+            movingPlatformPrevRotation = movingPlatform.rotation.eulerAngles;
+            
+            //Get values from the platform's script
+
+            //Move position based on platform's position delta
+            //movingPlatformVelocity = movingPlatform.GetComponent<MovingPlatform>().positionDelta;
+
+            //Rotate position around platform's pivot point by platform's rotation delta
+            //Vector3 dir = transform.position - movingPlatform.position;
+            //dir = Quaternion.Euler(movingPlatform.GetComponent<MovingPlatform>().rotationDelta) * dir;
+            //movingPlatformVelocity -= transform.position - (dir + movingPlatform.position);
         }
         else
         {
             movingPlatformPrevPosition = Vector3.zero;
+            movingPlatformPrevRotation = Vector3.zero;
             movingPlatformVelocity = Vector3.zero;
         }
     }
@@ -277,7 +339,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (jgtTimer > 0.0f)
         {
-            jgtTimer -= Time.deltaTime;
+            jgtTimer -= dt;
         }
 
         if (cCharacter.isGrounded)
@@ -287,13 +349,13 @@ public class PlayerMovement : MonoBehaviour
 
         if (dDurationTimer > 0.0f)
         {
-            dDurationTimer -= Time.deltaTime;
+            dDurationTimer -= dt;
         }
         else
         {
             if (dCooldownTimer > 0.0f)
             {
-                dCooldownTimer -= Time.deltaTime;
+                dCooldownTimer -= dt;
             }
         }
     }
