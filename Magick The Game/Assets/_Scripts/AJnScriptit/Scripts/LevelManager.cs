@@ -41,6 +41,7 @@ public class LevelManager : MonoBehaviour
     
     IEnumerator LoadLevelAsync(string levelName)
     {
+        GlobalVariables.entityList.Clear();
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(levelName);
         while (!asyncLoad.isDone)
         {

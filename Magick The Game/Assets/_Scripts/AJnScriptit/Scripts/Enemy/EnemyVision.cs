@@ -11,14 +11,17 @@ public class EnemyVision : MonoBehaviour
     [SerializeField] private float sightDistance = 30.0f;
     [SerializeField] private float sightRadius = 45.0f;
     [SerializeField] private float checkInterval = 0.5f;
+    [SerializeField] private float checkIntervalRandomRangeMax = 2.0f;
 
-    public bool bCanSeePlayer { get; private set; } = false;
-    public Vector3 playerLKLocation { get; private set; } = Vector3.zero;
+    public bool bCanSeeTarget { get; private set; } = false;
+    public Vector3 targetLocation { get; private set; } = Vector3.zero;
 
     private float checkTimer = 0.0f;
     private float raycastGraceTimer = 0.0f;
-    private Vector3 playerPosition = Vector3.zero;
-    private Vector3 playerOffset = Vector3.zero;
+    private GameObject targetGO = null;
+    private EnemyCore cEnemyCore = null;
+    //private Vector3 playerPosition = Vector3.zero;
+    //private Vector3 playerOffset = Vector3.zero;
 
     #endregion
 
@@ -49,13 +52,18 @@ public class EnemyVision : MonoBehaviour
     /*--------------------------------------------------------------*/
 
     #endregion
-    
+
     #region UNITY_DEFAULT_METHODS
-    
+
+    void Awake()
+    {
+        cEnemyCore = GetComponent<EnemyCore>();
+    }
+
     void Start()
     {
-        playerOffset = Vector3.up * (GlobalVariables.player.GetComponent<CharacterController>().height / 2);
-        checkTimer = Random.Range(0.0f, 2.0f);
+        //playerOffset = Vector3.up * (GlobalVariables.player.GetComponent<CharacterController>().height / 2);
+        checkTimer = Random.Range(0.0f, checkIntervalRandomRangeMax);
 
         for (int i = 0; i < visionVertices.Length; i++)
         {
@@ -67,6 +75,9 @@ public class EnemyVision : MonoBehaviour
 
     void FixedUpdate()
     {
+        #region OLD_METHOD
+        /*
+
         playerPosition = GlobalVariables.player.transform.position + playerOffset;
         Vector3 playerDirection = -Vector3.Normalize(transform.position - playerPosition);
         Quaternion headRotation = headTransform.rotation;
@@ -85,11 +96,11 @@ public class EnemyVision : MonoBehaviour
                 1
                 ))
             {
-                playerLKLocation = hit.point + playerOffset;
+                playerLocation = hit.point + playerOffset;
             }
             else
             {
-                playerLKLocation = playerPosition;
+                playerLocation = playerPosition;
             }
         }
         else
@@ -97,9 +108,9 @@ public class EnemyVision : MonoBehaviour
             headTransform.LookAt(headTransform.position + Vector3.Normalize(GetComponent<NavMeshAgent>().velocity));
             headTransform.rotation = Quaternion.Lerp(headTransform.rotation, headRotation, 0.9f);
 
-            if (Vector3.Distance(transform.position, playerLKLocation) < 1.0f)
+            if (Vector3.Distance(transform.position, playerLocation) < 1.0f)
             {
-                playerLKLocation = Vector3.zero;
+                playerLocation = Vector3.zero;
             }
         }
 
@@ -184,14 +195,147 @@ public class EnemyVision : MonoBehaviour
                 bCanSeePlayer = false;
             }
         }
+
+        */
+        #endregion
+
+        if (checkTimer <= 0.0f || bCanSeeTarget)
+        {
+            checkTimer = checkInterval;
+
+            Vector3[] vvTemp = new Vector3[visionVertices.Length];
+            vvTemp = TranslateVertices(visionVertices, headTransform.position, headTransform.rotation);
+            Mesh mesh = GenerateMesh(vvTemp, visionTriangles);
+
+            if (!bCanSeeTarget)
+            {
+                foreach (GameObject entity in GlobalVariables.entityList)
+                {
+                    if (entity.tag == (cEnemyCore.targetPlayer ? "Player" : "Enemy"))
+                    {
+                        if (Vector3.Distance(headTransform.position, entity.transform.position) < sightDistance)
+                        {
+                            if (IsPointInside(mesh, entity.transform.position))
+                            {
+                                targetGO = entity;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (targetGO != null)
+            {
+                Vector3 entityPosition = Vector3.zero;
+                Vector3 entityDirection = Vector3.zero;
+
+                if (targetGO.tag == "Player")
+                {
+                    entityPosition = targetGO.transform.position + Vector3.up * targetGO.GetComponent<CharacterController>().height / 2;
+                    entityDirection = -Vector3.Normalize(transform.position - entityPosition);
+                }
+                else
+                {
+                    entityPosition = targetGO.transform.position + Vector3.up * 0.5f;
+                    entityDirection = -Vector3.Normalize(transform.position - entityPosition);
+                }
+
+                RaycastHit hit;
+                if (Physics.Raycast(
+                    transform.position,
+                    entityDirection,
+                    out hit,
+                    sightDistance,
+                    1
+                    ))
+                {
+                    if (hit.transform == targetGO.transform)
+                    {
+                        bCanSeeTarget = true;
+                        raycastGraceTimer = 0.2f;
+
+                        if (Physics.Raycast(
+                            entityPosition,
+                            Vector3.down,
+                            out hit,
+                            Mathf.Infinity,
+                            1
+                            ))
+                        {
+                            targetLocation = hit.point + Vector3.up * 0.5f;
+                        }
+                        else
+                        {
+                            targetLocation = entityPosition;
+                        }
+                    }
+                    else
+                    {
+                        if (raycastGraceTimer > 0.0f)
+                        {
+                            raycastGraceTimer -= Time.fixedDeltaTime;
+                        }
+                        else
+                        {
+                            bCanSeeTarget = false;
+                        }
+                    }
+                }
+
+                //Draw the pyramid with debug lines
+                {
+                    Debug.DrawLine(transform.position, transform.position + entityDirection * sightDistance, bCanSeeTarget ? Color.green : Color.red);
+                    Debug.DrawLine(vvTemp[0], vvTemp[1], bCanSeeTarget ? Color.green : Color.yellow);
+                    Debug.DrawLine(vvTemp[0], vvTemp[2], bCanSeeTarget ? Color.green : Color.yellow);
+                    Debug.DrawLine(vvTemp[0], vvTemp[3], bCanSeeTarget ? Color.green : Color.yellow);
+                    Debug.DrawLine(vvTemp[0], vvTemp[4], bCanSeeTarget ? Color.green : Color.yellow);
+                }
+            }
+            else
+            {
+                if (bCanSeeTarget)
+                {
+                    //Target was destroyed, reset some variables
+                    bCanSeeTarget = false;
+                    targetLocation = Vector3.zero;
+                }
+
+                Debug.DrawLine(vvTemp[0], vvTemp[1], Color.red);
+                Debug.DrawLine(vvTemp[0], vvTemp[2], Color.red);
+                Debug.DrawLine(vvTemp[0], vvTemp[3], Color.red);
+                Debug.DrawLine(vvTemp[0], vvTemp[4], Color.red);
+            }
+        }
+        else
+        {
+            checkTimer -= Time.fixedDeltaTime;
+        }
+
+        //Look at the player (IMPLEMENT THIS BETTER LATER)
+        Quaternion headRotation = headTransform.rotation;
+
+        if (bCanSeeTarget)
+        {
+            if (targetGO != null)
+            {
+                headTransform.LookAt(targetGO.transform.position + Vector3.up * 0.5f);
+            }
+        }
+        else
+        {
+            headTransform.LookAt(headTransform.position + Vector3.Normalize(GetComponent<NavMeshAgent>().velocity));
+        }
+
+        headTransform.rotation = Quaternion.Lerp(headTransform.rotation, headRotation, 0.9f);
     }
 
-    void OnDrawGizmos()
+    void OnDrawGizmosSelected()
     {
-        Gizmos.color = bCanSeePlayer ?
+        Gizmos.color = bCanSeeTarget ?
             Color.red
             : Color.yellow;
-        Gizmos.DrawSphere(playerLKLocation, 0.4f);
+        Gizmos.DrawSphere(targetLocation, 0.4f);
 
         Gizmos.color = new Color(1.0f, 0.0f, 0.0f, 0.2f);
     }
@@ -199,11 +343,6 @@ public class EnemyVision : MonoBehaviour
     #endregion
 
     #region CUSTOM_METHODS
-
-    public void LookAt(Vector3 position)
-    {
-        headTransform.LookAt(position);
-    }
 
     Vector3[] TranslateVertices(Vector3[] inputArray, Vector3 translateVector, Quaternion headRotation)
     {

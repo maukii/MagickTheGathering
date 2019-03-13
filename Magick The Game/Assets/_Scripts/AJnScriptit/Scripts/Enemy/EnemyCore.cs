@@ -72,6 +72,8 @@ public class EnemyCore : MonoBehaviour
     public EnemyVision vision { get; private set; } = null;
     public EnemyNavigation navigation { get; private set; } = null;
     public Animator animator { get; private set; } = null;
+    public Health cHealth { get; private set; } = null;
+    public bool targetPlayer { get; private set; } = true;
 
     private bool bIsAttacking = false;
     private float radiusCheckTimer = 0.0f;
@@ -86,10 +88,16 @@ public class EnemyCore : MonoBehaviour
 
     #region UNITY_DEFAULT_METHODS
 
+    void Awake()
+    {
+        GlobalVariables.entityList.Add(this.gameObject);
+    }
+
     void Start()
     {
         vision = GetComponent<EnemyVision>();
         navigation = GetComponent<EnemyNavigation>();
+        cHealth = GetComponent<Health>();
 
         if (GetComponent<Animator>() != null)
         {
@@ -130,7 +138,6 @@ public class EnemyCore : MonoBehaviour
                         if (Vector3.Distance(transform.position, playerPosition) < instantSightRadius)
                         {
                             currentState = EState.ATTACK;
-                            vision.LookAt(playerPosition);
                         }
                         else
                         {
@@ -160,6 +167,21 @@ public class EnemyCore : MonoBehaviour
         }
     }
 
+    void OnTriggerStay(Collider other)
+    {
+        if (other.tag == "TriggerKill")
+        {
+            if (other.GetComponent<TriggerHurt>().killInstantly)
+            {
+                cHealth.Kill();
+            }
+            else
+            {
+                cHealth.Hurt(other.GetComponent<TriggerHurt>().damage);
+            }
+        }
+    }
+
     void OnDrawGizmos()
     {
         #if UNITY_EDITOR
@@ -181,11 +203,6 @@ public class EnemyCore : MonoBehaviour
         radiusCheckTimer        -= radiusCheckTimer > 0.0f      ? time : 0.0f;
         paranoidTimer           -= paranoidTimer > 0.0f         ? time : 0.0f;
         alertedTimer -= alertedTimer > 0.0f ? time : 0.0f;
-
-        if (!vision.bCanSeePlayer)
-        {
-            shootIntervalTimer = shootInterval;
-        }
     }
 
     public void OnHurt()
@@ -195,13 +212,14 @@ public class EnemyCore : MonoBehaviour
             case EState.IDLE:       currentState = EState.PARANOID; paranoidTimer = paranoidDuration; break;
             case EState.PATROL:     currentState = EState.PARANOID; paranoidTimer = paranoidDuration; break;
             case EState.SEARCH:     currentState = EState.PARANOID; paranoidTimer = paranoidDuration; break;
-            case EState.PARANOID:   currentState = EState.ALERTED; vision.LookAt(playerPosition);  alertedTimer = 2.0f; break;
+            case EState.PARANOID:   currentState = EState.ALERTED;  alertedTimer  = 2.0f; break;
         }
     }
 
     public void OnDeath()
     {
         currentState = EState.DISABLED;
+        GlobalVariables.entityList.Remove(this.gameObject);
         Destroy(this.gameObject);
     }
 
@@ -223,7 +241,7 @@ public class EnemyCore : MonoBehaviour
 
     void AIIdle()
     {
-        if (vision.bCanSeePlayer)
+        if (vision.bCanSeeTarget)
         {
             currentState = EState.ATTACK;
         }
@@ -231,7 +249,7 @@ public class EnemyCore : MonoBehaviour
 
     void AIPatrol()
     {
-        if (vision.bCanSeePlayer)
+        if (vision.bCanSeeTarget)
         {
             currentState = EState.ATTACK;
         }
@@ -239,7 +257,7 @@ public class EnemyCore : MonoBehaviour
 
     void AIAlerted()
     {
-        if (vision.bCanSeePlayer)
+        if (vision.bCanSeeTarget)
         {
             currentState = EState.ATTACK;
         }
@@ -255,7 +273,7 @@ public class EnemyCore : MonoBehaviour
 
     void AIParanoid()
     {
-        if (vision.bCanSeePlayer)
+        if (vision.bCanSeeTarget)
         {
             currentState = EState.ATTACK;
         }
@@ -272,13 +290,13 @@ public class EnemyCore : MonoBehaviour
     {
         if (searchPlayerAfterAttack)
         {
-            if (vision.bCanSeePlayer)
+            if (vision.bCanSeeTarget)
             {
                 currentState = EState.ATTACK;
             }
             else
             {
-                if (Vector3.Distance(transform.position, vision.playerLKLocation) < navigation.navigationErrorMargin || vision.playerLKLocation == Vector3.zero)
+                if (Vector3.Distance(transform.position, vision.targetLocation) < navigation.navigationErrorMargin || vision.targetLocation == Vector3.zero)
                 {
                     currentState = EState.PARANOID;
                     paranoidTimer = paranoidDuration;
@@ -293,7 +311,7 @@ public class EnemyCore : MonoBehaviour
 
     void AIAttack()
     {
-        if (vision.bCanSeePlayer)
+        if (vision.bCanSeeTarget)
         {
             if (currentEnemyType == EEnemyType.RANGED)
             {
@@ -308,14 +326,14 @@ public class EnemyCore : MonoBehaviour
                     shootIntervalTimer = shootInterval;
                     if (projectile != null)
                     {
-                        Vector3 direction = -Vector3.Normalize(transform.position + Vector3.up * 1.0f - (playerPosition));
+                        Vector3 direction = -Vector3.Normalize(transform.position + Vector3.up * 1.0f - (vision.targetLocation));
                         Instantiate(projectile).GetComponent<Projectile>().Initialize(transform.position + Vector3.up * 1.0f, direction, this.gameObject);
                     }
                 }
             }
             else if (currentEnemyType == EEnemyType.MELEE)
             {
-                if (Vector3.Distance(transform.position, playerPosition) < 2.0f)
+                if (Vector3.Distance(transform.position, vision.targetLocation) < 2.0f)
                 {
                     currentState = EState.DISABLED;
                     animator.enabled = true;

@@ -137,14 +137,14 @@ public class EnemyNavigation : MonoBehaviour
 
     void AISearch()
     {
-        agent.SetDestination(GetComponent<EnemyVision>().playerLKLocation);
+        agent.SetDestination(GetComponent<EnemyVision>().targetLocation);
     }
 
     void AIAttack()
     {
         if (cEnemyCore.currentEnemyType == EnemyCore.EEnemyType.MELEE)
         {
-            agent.SetDestination(GetComponent<EnemyVision>().playerLKLocation);
+            agent.SetDestination(GetComponent<EnemyVision>().targetLocation);
         }
         else if (cEnemyCore.currentEnemyType == EnemyCore.EEnemyType.RANGED)
         {

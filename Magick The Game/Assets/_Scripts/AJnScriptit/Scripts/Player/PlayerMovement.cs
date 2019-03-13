@@ -43,8 +43,9 @@ public class PlayerMovement : MonoBehaviour
 
     void Start()
     {
-        cCharacter      = GetComponent<PlayerCore>().cCharacter;
-        cTPCamera       = GetComponent<PlayerCore>().cTPCamera;
+        cCharacter       = GetComponent<PlayerCore>().cCharacter;
+        cTPCamera        = GetComponent<PlayerCore>().cTPCamera;
+        physicsLayerMask = GetComponent<PlayerCore>().physicsLayerMask;
     }
 
     void OnControllerColliderHit(ControllerColliderHit hit)

@@ -30,6 +30,7 @@ public class PlayerCore : MonoBehaviour
     void Awake()
     {
         GlobalVariables.player = this;
+        GlobalVariables.entityList.Add(this.gameObject);
 
         cHealth         = GetComponent<Health>();
         cTPCamera       = GetComponent<ThirdPersonCamera>();
@@ -134,6 +135,7 @@ public class PlayerCore : MonoBehaviour
     public void OnDeath()
     {
         bIsDead = true;
+        GlobalVariables.entityList.Remove(this.gameObject);
         canvasManager.OnPlayerDeath();
         EnableControls(false);
 

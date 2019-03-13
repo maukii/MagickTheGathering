@@ -15,6 +15,7 @@ TagManager:
   - DestructibleFloor
   - Crushing
   - SpikeTrap
+  - Enemy
   layers:
   - Default
   - TransparentFX
